@@ -1,38 +1,22 @@
-import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { auth, db } from "../firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { useAuth } from "../context/AuthContext";
 
 function AdminRoute({ children }) {
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, role, loading } = useAuth();
 
-  useEffect(() => {
-    const checkRole = async () => {
-      if (!auth.currentUser) {
-        setLoading(false);
-        return;
-      }
+  console.log("ADMIN ROUTE CHECK");
+  console.log("USER:", user);
+  console.log("ROLE:", role);
+  console.log("LOADING:", loading);
 
-      const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
+  if (loading) return null;
 
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty && snapshot.docs[0].data().role === "admin") {
-        setIsAdmin(true);
-      }
-
-      setLoading(false);
-    };
-
-    checkRole();
-  }, []);
-
-  if (loading) return null; // bisa diganti loading spinner
-
-  if (!isAdmin) {
+  if (!user || role !== "admin") {
+    console.log("❌ BUKAN ADMIN → REDIRECT KE /home");
     return <Navigate to="/home" replace />;
   }
+
+  console.log("✅ ADMIN VALID → MASUK DASHBOARD");
 
   return children;
 }

@@ -1,8 +1,10 @@
 import { Navigate } from "react-router-dom";
-import { auth } from "../firebase";
+import { useAuth } from "../context/AuthContext";
 
 function AuthRoute({ children }) {
-  const user = auth.currentUser;
+  const { user, loading } = useAuth();
+
+  if (loading) return null; // atau loading spinner
 
   if (!user) {
     return <Navigate to="/" replace />;
