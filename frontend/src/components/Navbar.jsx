@@ -23,7 +23,12 @@ function Navbar({ role }) {
 
       {/* RIGHT DESKTOP */}
       <div className="navbar-right desktop">
-        {role === "admin" && <span onClick={() => navigate("/admin")}>Dashboard Admin</span>}
+        {role === "admin" && (
+          <span className="desktop" onClick={() => navigate("/admin")}>
+            Dashboard Admin
+          </span>
+        )}
+
         <span onClick={() => navigate("/riwayat")}>Riwayat</span>
         <span onClick={logout}>Logout</span>
       </div>
