@@ -8,6 +8,7 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   position: relative;
   z-index: 100;
+  font-family: inherit;
 }
 
 /* LOGO */
@@ -26,8 +27,9 @@
 .navbar-right span {
   cursor: pointer;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 400; /* ⬅ naik dikit */
   color: #1f2937;
+  letter-spacing: 0.2px;
 }
 
 /* HAMBURGER */
@@ -52,7 +54,9 @@
 .mobile-menu div {
   padding: 12px 16px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit; /* 🔑 */
   border-bottom: 1px solid #eee;
 }
 
