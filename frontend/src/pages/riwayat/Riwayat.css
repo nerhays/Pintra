@@ -1,0 +1,75 @@
+.riwayat-container {
+  padding: 32px;
+  max-width: 900px;
+  margin: auto;
+}
+
+.riwayat-tab {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.riwayat-tab button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.riwayat-tab .active {
+  background: #0b5ed7;
+  color: #fff;
+  border-color: #0b5ed7;
+}
+
+.riwayat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.riwayat-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.status {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status.completed {
+  background: #28a745;
+  color: #fff;
+}
+
+.status.on_going {
+  background: #0b5ed7;
+  color: #fff;
+}
+
+.status.submitted,
+.status.pending {
+  background: #adb5bd;
+  color: #fff;
+}
+
+.btn-return {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: #0b5ed7;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}

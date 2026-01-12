@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import RoomBooking from "./pages/room/RoomBooking";
 import RoomBookingForm from "./pages/room/RoomBookingForm";
 import RoomDetail from "./pages/room/RoomDetail";
+import Riwayat from "./pages/riwayat/Riwayat";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Profile from "./pages/profile/profile";
 import AuthRoute from "./routes/AuthRoute";
@@ -63,6 +64,14 @@ function App() {
           element={
             <AuthRoute>
               <Profile />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/riwayat"
+          element={
+            <AuthRoute>
+              <Riwayat />
             </AuthRoute>
           }
         />
