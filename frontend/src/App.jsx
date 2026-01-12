@@ -6,7 +6,7 @@ import RoomBooking from "./pages/room/RoomBooking";
 import RoomBookingForm from "./pages/room/RoomBookingForm";
 import RoomDetail from "./pages/room/RoomDetail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-
+import Profile from "./pages/profile/profile";
 import AuthRoute from "./routes/AuthRoute";
 import AdminRoute from "./routes/AdminRoute";
 
@@ -55,6 +55,14 @@ function App() {
           element={
             <AuthRoute>
               <RoomBookingForm />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <AuthRoute>
+              <Profile />
             </AuthRoute>
           }
         />

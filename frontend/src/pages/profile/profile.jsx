@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import "./profile.css";
-import profileIcon from "../assets/profile.png";
+import profileIcon from "../../assets/profile.png";
 import { signOut } from "firebase/auth";
-import { auth } from "../firebase";
-import { db } from "../firebase";
+import { auth } from "../../firebase";
+import { db } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
@@ -45,7 +45,7 @@ function Profile() {
       <div className="profile-grid">
         <div className="profile-card">
           <span>👤</span>
-          <p>{profile.name}</p>
+          <p>{profile.nama}</p>
         </div>
 
         <div className="profile-card">
@@ -60,7 +60,7 @@ function Profile() {
 
         <div className="profile-card">
           <span>💼</span>
-          <p>{profile.jabatan}</p>
+          <p>{profile.role}</p>
         </div>
 
         <div className="profile-card">
@@ -70,7 +70,7 @@ function Profile() {
 
         <div className="profile-card">
           <span>📱</span>
-          <p>{profile.phone}</p>
+          <p>{profile.noTelp}</p>
         </div>
       </div>
 
