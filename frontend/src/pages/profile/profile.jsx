@@ -36,6 +36,13 @@ function Profile() {
 
   return (
     <div className="profile-container">
+      {/* HEADER */}
+      <div className="profile-header">
+        <button className="btn-back" onClick={() => navigate("/home")}>
+          ← Kembali ke Dashboard
+        </button>
+      </div>
+
       {/* Avatar */}
       <div className="profile-avatar">
         <img src={profileIcon} alt="Profile" />
