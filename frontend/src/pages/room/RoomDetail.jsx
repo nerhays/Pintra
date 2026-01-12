@@ -1,147 +1,111 @@
-import { useState } from "react";
-import { addDoc, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
-import { db, auth } from "../../firebase";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../../firebase";
 
-function App() {
-  // ===== STATE FORM =====
-  const [namaKegiatan, setNamaKegiatan] = useState("");
-  const [jenisRapat, setJenisRapat] = useState("OFFLINE");
+import Navbar from "../../components/Navbar";
+import Footer from "../../components/Footer";
+import FooterOrnament from "../../components/FooterOrnament";
 
-  const [roomId, setRoomId] = useState("ROOM_A");
-  const [roomNama, setRoomNama] = useState("Ruang Meeting A");
-  const [kapasitas, setKapasitas] = useState(20);
+import "./RoomDetail.css";
 
-  const [tanggal, setTanggal] = useState("");
-  const [jamMulai, setJamMulai] = useState("");
-  const [jamSelesai, setJamSelesai] = useState("");
-  const [peserta, setPeserta] = useState("100");
-  const [konsumsi, setKonsumsi] = useState("TIDAK");
-  const [dekorasi, setDekorasi] = useState("");
+function RoomDetail() {
+  const { roomId } = useParams();
+  const navigate = useNavigate();
 
-  // ===== CEK JEDA 2 JAM =====
-  const isRoomAvailable = async (start, end) => {
-    const q = query(collection(db, "room_bookings"), where("ruang.roomId", "==", roomId));
+  const [room, setRoom] = useState(null);
+  const [role, setRole] = useState(null); // ✅ SAMA DENGAN HOME
+  const [loading, setLoading] = useState(true);
 
-    const snapshot = await getDocs(q);
+  useEffect(() => {
+    const fetchData = async () => {
+      /** ======================
+       *  1️⃣ FETCH ROLE (SAMA DENGAN HOME)
+       ======================= */
+      if (auth.currentUser) {
+        const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
 
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-
-      const oldStart = data.waktuMulai.toDate();
-      const oldEnd = data.waktuSelesai.toDate();
-
-      // jeda minimal 2 jam
-      const minNextStart = new Date(oldEnd.getTime() + 2 * 60 * 60 * 1000);
-
-      if (start < minNextStart && end > oldStart) {
-        return false; // bentrok
-      }
-    }
-    return true;
-  };
-
-  // ===== SUBMIT FORM =====
-  const submitForm = async () => {
-    try {
-      if (!auth.currentUser) {
-        alert("Harus login dulu");
-        return;
+        const userSnap = await getDocs(q);
+        if (!userSnap.empty) {
+          setRole(userSnap.docs[0].data().role);
+        }
       }
 
-      if (!tanggal || !jamMulai || !jamSelesai) {
-        alert("Tanggal dan jam wajib diisi");
-        return;
+      /** ======================
+       *  2️⃣ FETCH ROOM DETAIL
+       ======================= */
+      const ref = doc(db, "rooms", roomId);
+      const roomSnap = await getDoc(ref);
+
+      if (roomSnap.exists()) {
+        setRoom(roomSnap.data());
       }
 
-      const start = new Date(`${tanggal}T${jamMulai}`);
-      const end = new Date(`${tanggal}T${jamSelesai}`);
+      setLoading(false);
+    };
 
-      if (end <= start) {
-        alert("Jam selesai harus lebih besar dari jam mulai");
-        return;
-      }
+    fetchData();
+  }, [roomId]);
 
-      const available = await isRoomAvailable(start, end);
-      if (!available) {
-        alert("Ruang tidak tersedia (minimal jeda 2 jam)");
-        return;
-      }
+  if (loading) return <div style={{ padding: 40 }}>Loading...</div>;
+  if (!room) return <div style={{ padding: 40 }}>Ruang tidak ditemukan</div>;
 
-      // ===== SIMPAN KE FIRESTORE =====
-      await addDoc(collection(db, "room_bookings"), {
-        namaKegiatan,
-        jenisRapat,
-
-        ruang: {
-          roomId,
-          nama: roomNama,
-          kapasitas,
-        },
-
-        waktuMulai: Timestamp.fromDate(start),
-        waktuSelesai: Timestamp.fromDate(end),
-
-        peminjam: {
-          userId: auth.currentUser.uid,
-          email: auth.currentUser.email,
-        },
-        peserta,
-        konsumsi,
-        dekorasi,
-
-        status: "PENDING",
-        createdAt: Timestamp.now(),
-      });
-
-      alert("Peminjaman ruang berhasil diajukan");
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  // ===== UI =====
   return (
-    <div style={{ padding: 40, maxWidth: 600 }}>
-      <h2>Formulir Peminjaman Ruang</h2>
+    <>
+      {/* ✅ SEKARANG ROLE SELALU BENAR */}
+      <Navbar role={role} />
 
-      <input placeholder="Nama Kegiatan" onChange={(e) => setNamaKegiatan(e.target.value)} />
-      <br />
-      <br />
+      <div className="room-detail-container">
+        {/* IMAGE */}
+        <div className="room-image-box" />
 
-      <select onChange={(e) => setJenisRapat(e.target.value)}>
-        <option value="OFFLINE">Offline</option>
-        <option value="Hybrid">Hybrid</option>
-      </select>
-      <br />
-      <br />
+        {/* CONTENT */}
+        <div className="room-info-wrapper">
+          <div>
+            <h2>{room.namaRuang}</h2>
 
-      <input type="date" onChange={(e) => setTanggal(e.target.value)} />
-      <br />
-      <br />
+            <div className="room-meta">
+              <div>
+                <span className="label">Lokasi</span>
+                <div className="box">{room.lokasi}</div>
+              </div>
 
-      <input type="time" onChange={(e) => setJamMulai(e.target.value)} />
-      <input type="time" onChange={(e) => setJamSelesai(e.target.value)} />
-      <br />
-      <br />
-      <input placeholder="Jumlah Peserta" onChange={(e) => setPeserta(e.target.value)} />
-      <br />
-      <br />
-      <select onChange={(e) => setKonsumsi(e.target.value)}>
-        <option value="TIDAK">Tidak</option>
-        <option value="NASI">Nasi</option>
-        <option value="SNACK">Snack</option>
-        <option value="COFFEE_BREAK">Coffee Break</option>
-      </select>
-      <br />
-      <br />
+              <div>
+                <span className="label">Kapasitas</span>
+                <div className="box">{room.kapasitas}</div>
+              </div>
+            </div>
 
-      <textarea placeholder="Catatan Dekorasi" onChange={(e) => setDekorasi(e.target.value)} />
-      <br />
-      <br />
+            <div className="fasilitas">
+              <h4>Fasilitas</h4>
+              <div className="fasilitas-list">
+                {room.fasilitas?.map((f, i) => (
+                  <span key={i} className="fasilitas-item">
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
 
-      <button onClick={submitForm}>PINJAM</button>
-    </div>
+          {/* ACTION */}
+          <div className="room-action">
+            <div className={`status ${room.status}`}>
+              08.00 - 10.30 <br />
+              {room.status === "available" ? "Tersedia" : "Tidak Tersedia"}
+            </div>
+
+            <button className="btn-pinjam" disabled={room.status !== "available"} onClick={() => navigate(`/room/book/${roomId}/form`)}>
+              Pinjam
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <FooterOrnament />
+      <Footer />
+    </>
   );
 }
 
-export default App;
+export default RoomDetail;

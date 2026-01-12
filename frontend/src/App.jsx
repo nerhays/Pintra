@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import RoomBooking from "./pages/room/RoomBooking";
+import RoomBookingForm from "./pages/room/RoomBookingForm";
 import RoomDetail from "./pages/room/RoomDetail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
@@ -46,6 +47,14 @@ function App() {
           element={
             <AuthRoute>
               <RoomDetail />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/room/book/:roomId/form"
+          element={
+            <AuthRoute>
+              <RoomBookingForm />
             </AuthRoute>
           }
         />
