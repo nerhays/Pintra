@@ -4,18 +4,18 @@ function Footer() {
       <div style={styles.container}>
         {/* KANTOR PUSAT */}
         <div>
-          <p style={styles.title}>KANTOR PUSAT</p>
+          <p style={styles.title}>KANTOR REGIONAL 3</p>
           <p>
             PT Pelabuhan Indonesia (Persero)
             <br />
-            Pelindo Tower, Jl. Yos Sudarso No.9, Jakarta Utara 14230
+            Jl. Perak Timur No.620, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 60165
             <br />
             <br />
             CUSTOMER CARE PELINDO
             <br />
             📞 102
             <br />
-            WhatsApp: 0811-1552-102
+            Telepon:  031- 3298631 – 7
           </p>
         </div>
 
