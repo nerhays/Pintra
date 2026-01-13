@@ -1,0 +1,55 @@
+.detail-container {
+  padding: 40px;
+  max-width: 900px;
+  margin: auto;
+}
+
+.back-btn {
+  background: #0b5ed7;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.status-box {
+  text-align: center;
+  margin: 40px 0;
+}
+
+.success {
+  color: green;
+}
+.warning {
+  color: orange;
+}
+.info {
+  color: #0b5ed7;
+}
+.pending {
+  color: gray;
+}
+
+.detail-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+  line-height: 1.8;
+}
+
+.action-btn {
+  margin-top: 30px;
+  width: 100%;
+  padding: 14px;
+  background: #0b5ed7;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.action-btn.danger {
+  background: #dc3545;
+}

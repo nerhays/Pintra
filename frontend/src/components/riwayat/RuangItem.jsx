@@ -1,8 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import StatusBadge from "./StatusBadge";
 
 function RuangItem({ item }) {
+  const navigate = useNavigate();
+
   return (
-    <div className="riwayat-card">
+    <div className="riwayat-card clickable" onClick={() => navigate(`/riwayat/ruang/${item.id}`)}>
       <div>
         <strong>{item.namaKegiatan}</strong>
         <p>Ruang: {item.ruang.nama}</p>

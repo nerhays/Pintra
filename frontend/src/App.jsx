@@ -11,6 +11,8 @@ import Profile from "./pages/profile/profile";
 import AuthRoute from "./routes/AuthRoute";
 import AdminRoute from "./routes/AdminRoute";
 
+import VehicleHistoryDetail from "./components/riwayat/VehicleHistoryDetail";
+import RoomHistoryDetail from "./components/riwayat/RoomHistoryDetail";
 function App() {
   return (
     <BrowserRouter>
@@ -72,6 +74,22 @@ function App() {
           element={
             <AuthRoute>
               <Riwayat />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/riwayat/kendaraan/:bookingId"
+          element={
+            <AuthRoute>
+              <VehicleHistoryDetail />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/riwayat/ruang/:bookingId"
+          element={
+            <AuthRoute>
+              <RoomHistoryDetail />
             </AuthRoute>
           }
         />
