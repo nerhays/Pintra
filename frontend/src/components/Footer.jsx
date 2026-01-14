@@ -1,60 +1,49 @@
-function Footer() {
+ function Footer() {
   return (
     <footer style={styles.footer}>
       <div style={styles.container}>
-        {/* KANTOR PUSAT */}
+        {/* KANTOR REGIONAL */}
         <div>
           <p style={styles.title}>KANTOR REGIONAL 3</p>
           <p>
             PT Pelabuhan Indonesia (Persero)
             <br />
-            Jl. Perak Timur No.620, Perak Utara, Kec. Pabean Cantikan, Surabaya, Jawa Timur 60165
-            <br />
-            <br />
-            CUSTOMER CARE PELINDO
-            <br />
-            📞 102
-            <br />
-            Telepon:  031- 3298631 – 7
+            Jl. Perak Timur No.620, Perak Utara,  
+            Kec. Pabean Cantikan, Surabaya, Jawa Timur 60165
           </p>
         </div>
 
-        {/* LINK TERKAIT */}
+        {/* CUSTOMER CARE */}
         <div>
-          <p style={styles.title}>LINK TERKAIT</p>
+          <p style={styles.title}>CUSTOMER CARE PELINDO</p>
           <ul style={styles.list}>
-            <li>Danantara Indonesia</li>
-            <li>Kementerian BUMN RI</li>
-            <li>Kementerian Perhubungan RI</li>
+            <li>Telepon: 031-3298631 – 7</li>
+            <li>📞 102</li>
           </ul>
         </div>
 
-        {/* SOCIAL MEDIA */}
+        {/* INTERNAL SYSTEM */}
         <div>
-          <p style={styles.title}>SOCIAL MEDIA</p>
-          <div style={styles.social}>
-            <span>🐦</span>
-            <span>📘</span>
-            <span>📷</span>
-            <span>▶️</span>
-            <span>🎵</span>
-          </div>
+          <p style={styles.title}>PELINDO INTERNAL SYSTEM</p>
+          <p>
+            Platform internal untuk mendukung kolaborasi dan kinerja seluruh insan Pelindo.
+          </p>
         </div>
+      </div>
 
-        {/* WIDGET */}
-        <div>
-          <p style={styles.title}>INFO PUBLIK</p>
-          <div style={styles.widget}>Widget Kominfo</div>
-        </div>
+      {/* CAPTION BOTTOM */}
+      <div style={styles.caption}>
+        Pelindo – Menghubungkan kinerja, membangun kepercayaan.
       </div>
     </footer>
   );
 }
+
 const styles = {
   footer: {
     backgroundColor: "#0b6db7",
     color: "#fff",
-    padding: "60px 20px",
+    padding: "60px 20px 30px",
   },
 
   container: {
@@ -76,17 +65,14 @@ const styles = {
     lineHeight: 2,
   },
 
-  social: {
-    display: "flex",
-    gap: 16,
-    fontSize: 20,
-  },
-
-  widget: {
-    background: "#fff",
-    color: "#000",
-    padding: 12,
-    borderRadius: 6,
+  caption: {
+    marginTop: 50,
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: 500,
+    opacity: 0.9,
+    borderTop: "1px solid rgba(255,255,255,0.2)",
+    paddingTop: 20,
   },
 };
 
