@@ -186,7 +186,7 @@ function RoomBooking() {
         {/* ACTION */}
         {jamMulai && jamSelesai && (
           <div className="action">
-            <button className="btn-primary" onClick={() => navigate(`/room/book/${selectedRoom}/form?date=${selectedDate}&start=${jamMulai}&end=${jamSelesai}`)}>
+            <button className="btn-primary" onClick={() => navigate(`/room/book/${selectedRoom}?date=${selectedDate}&start=${jamMulai}&end=${jamSelesai}`)}>
               Booking Ruangan Ini
             </button>
           </div>
