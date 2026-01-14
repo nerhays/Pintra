@@ -1,96 +1,149 @@
-/* CONTAINER */
 .home-container {
   padding: 32px;
-  max-width: 100%;
-  padding-top: 80px;
+  max-width: 1200px;
+  margin: auto;
 }
 
 /* BANNER */
 .home-banner {
   width: 100%;
   border-radius: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
-/* SECTION TITLE */
-.section-title {
+/* CARD UMUM */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
   margin-bottom: 24px;
-  font-size: 25px;
-  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.card,
+.service-card,
+.status-box {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* CARD WRAPPER */
+.card:hover,
+.status-box:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+}
+.card h4 span {
+  font-weight: normal;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* PROGRESS */
+.progress-row {
+  margin-top: 16px;
+}
+
+.progress {
+  background: #e5e7eb;
+  border-radius: 10px;
+  height: 10px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+
+.progress-fill {
+  height: 100%;
+}
+
+.progress-fill.green {
+  background: #22c55e;
+}
+
+.progress-fill.red {
+  background: #ef4444;
+}
+
+/* STATUS GRID */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.status-box {
+  padding: 16px;
+  border-radius: 10px;
+  color: #fff;
+  text-align: center;
+}
+
+.status-box h5 {
+  margin-bottom: 8px;
+}
+
+.status-box.yellow {
+  background: #fbbf24;
+}
+.status-box.blue {
+  background: #3b82f6;
+}
+.status-box.red {
+  background: #ef4444;
+}
+.status-box.green {
+  background: #22c55e;
+}
+
+/* LAYANAN */
+.section-title {
+  text-align: center;
+  margin: 40px 0 24px;
+}
+
 .service-wrapper {
   display: flex;
   gap: 24px;
-  margin-bottom: 24px;
-  width: 100%;
 }
-
-/* CARD */
+.service-card:hover {
+  transform: scale(1.04);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+}
 .service-card {
   flex: 1;
-  min-height: 280px;
+  position: relative;
   border-radius: 16px;
   overflow: hidden;
-  position: relative;
   cursor: pointer;
-  max-width: 100%; /* 🔑 */
 }
 
-.service-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+.service-card img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
 }
 
-/* DISABLED */
 .service-card.disabled {
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
-/* IMAGE */
-.service-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block; /* 🔑 cegah inline img overflow */
-}
-
-/* 🔥 COMING SOON OVERLAY */
 .coming-soon {
   position: absolute;
   inset: 0;
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
-  align-items: center;
   justify-content: center;
-
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-
-  pointer-events: none;
+  align-items: center;
+  color: white;
+  font-weight: bold;
 }
 
-/* 📱 RESPONSIVE */
+/* RESPONSIVE */
 @media (max-width: 768px) {
-  .home-container {
-    padding: 16px; /* 🔑 lebih kecil */
+  .status-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .service-wrapper {
     flex-direction: column;
-  }
-
-  .service-card {
-    min-height: 220px;
-  }
-
-  .coming-soon {
-    font-size: 22px;
-    letter-spacing: 1px;
   }
 }
