@@ -9,47 +9,108 @@ import FooterOrnament from "../../components/FooterOrnament";
 
 import "./RoomBooking.css";
 
+// ================= CONFIG =================
+const BUFFER_HOURS = 2;
+
+// generate slot tiap 30 menit
+function generateTimeSlots(start = "08:00", end = "17:00") {
+  const slots = [];
+  let [h, m] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+
+  while (h < eh || (h === eh && m <= em)) {
+    slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    m += 30;
+    if (m >= 60) {
+      m = 0;
+      h += 1;
+    }
+  }
+  return slots;
+}
+
+const TIME_SLOTS = generateTimeSlots("08:00", "17:00");
+
+// ================= COMPONENT =================
 function RoomBooking() {
   const navigate = useNavigate();
 
   const [rooms, setRooms] = useState([]);
-  const [filteredRooms, setFilteredRooms] = useState([]);
-
   const [role, setRole] = useState(null);
 
-  // FILTER STATE
-  const [keyword, setKeyword] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
 
+  const [availableTimes, setAvailableTimes] = useState([]);
+  const [jamMulai, setJamMulai] = useState("");
+  const [jamSelesai, setJamSelesai] = useState("");
+
+  // ================= FETCH ROOMS & ROLE =================
   useEffect(() => {
     const fetchData = async () => {
-      // 🔹 ROLE (sama seperti Home)
+      // role
       if (auth.currentUser) {
         const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
         const snap = await getDocs(q);
-        if (!snap.empty) {
-          setRole(snap.docs[0].data().role);
-        }
+        if (!snap.empty) setRole(snap.docs[0].data().role);
       }
 
-      // 🔹 ROOMS
+      // rooms
       const snapRooms = await getDocs(collection(db, "rooms"));
-      const data = snapRooms.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      setRooms(data);
-      setFilteredRooms(data);
+      setRooms(
+        snapRooms.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+      );
     };
 
     fetchData();
   }, []);
 
-  const handleSearch = () => {
-    const result = rooms.filter((room) => room.namaRuang.toLowerCase().includes(keyword.toLowerCase()));
-    setFilteredRooms(result);
+  // ================= HITUNG JAM TERSEDIA =================
+  const checkAvailability = async () => {
+    if (!selectedRoom || !selectedDate) {
+      setAvailableTimes([]);
+      return;
+    }
+
+    const q = query(collection(db, "room_bookings"), where("ruang.roomId", "==", selectedRoom));
+    const snap = await getDocs(q);
+
+    let blockedSlots = new Set();
+
+    snap.docs.forEach((doc) => {
+      const data = doc.data();
+      const start = data.waktuMulai.toDate();
+      const end = data.waktuSelesai.toDate();
+
+      const bookingDate = start.toISOString().split("T")[0];
+      if (bookingDate !== selectedDate) return;
+
+      // tambah buffer 2 jam
+      const endWithBuffer = new Date(end.getTime() + BUFFER_HOURS * 60 * 60 * 1000);
+
+      TIME_SLOTS.forEach((slot) => {
+        const slotTime = new Date(`${selectedDate}T${slot}`);
+        if (slotTime >= start && slotTime < endWithBuffer) {
+          blockedSlots.add(slot);
+        }
+      });
+    });
+
+    const available = TIME_SLOTS.filter((slot) => !blockedSlots.has(slot));
+    setAvailableTimes(available);
   };
 
+  // 🔥 AUTO CHECK SAAT RUANG / TANGGAL BERUBAH
+  useEffect(() => {
+    checkAvailability();
+    setJamMulai("");
+    setJamSelesai("");
+  }, [selectedRoom, selectedDate]);
+
+  // ================= UI =================
   return (
     <>
       <Navbar role={role} />
@@ -57,35 +118,64 @@ function RoomBooking() {
       <div className="room-container">
         <h2 className="room-title">Peminjaman Ruang</h2>
 
-        {/* 🔍 FILTER */}
+        {/* FILTER */}
         <div className="room-filter">
-          <input type="text" placeholder="Ruangan" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+          <select value={selectedRoom} onChange={(e) => setSelectedRoom(e.target.value)}>
+            <option value="">Pilih Ruangan</option>
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.namaRuang}
+              </option>
+            ))}
+          </select>
 
-          <input type="date" />
-          <input type="time" />
-          <span className="to">to</span>
-          <input type="time" />
-
-          <button onClick={handleSearch}>Search</button>
+          <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
         </div>
 
-        {/* 🧱 GRID CARD */}
-        <div className="room-grid">
-          {filteredRooms.map((room) => (
-            <div key={room.id} className="room-card" onClick={() => navigate(`/room/book/${room.id}`)}>
-              <div className="room-image" />
-
-              <div className="room-info">
-                <h4>{room.namaRuang}</h4>
-                <p>Lokasi: {room.lokasi}</p>
-                <p>Kapasitas: {room.kapasitas}</p>
-                <p>Jenis Rapat: {room.tipe}</p>
-
-                <span className={`status ${room.status === "available" ? "available" : "booked"}`}>{room.status === "available" ? "Tersedia" : "Terpakai"}</span>
-              </div>
+        {/* JAM */}
+        {availableTimes.length > 0 && (
+          <div className="time-wrapper">
+            {/* JAM MULAI */}
+            <div>
+              <label>Jam Mulai</label>
+              <select value={jamMulai} onChange={(e) => setJamMulai(e.target.value)}>
+                <option value="">-- Pilih --</option>
+                {TIME_SLOTS.map((jam) => (
+                  <option key={jam} value={jam} disabled={!availableTimes.includes(jam)}>
+                    {jam} {!availableTimes.includes(jam) && "(Tidak tersedia)"}
+                  </option>
+                ))}
+              </select>
             </div>
-          ))}
-        </div>
+
+            {/* JAM SELESAI */}
+            <div>
+              <label>Jam Selesai</label>
+              <select value={jamSelesai} onChange={(e) => setJamSelesai(e.target.value)} disabled={!jamMulai}>
+                <option value="">-- Pilih --</option>
+                {availableTimes
+                  .filter((jam) => {
+                    if (!jamMulai) return false;
+                    return availableTimes.indexOf(jam) > availableTimes.indexOf(jamMulai);
+                  })
+                  .map((jam) => (
+                    <option key={jam} value={jam}>
+                      {jam}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* ACTION */}
+        {jamMulai && jamSelesai && (
+          <div className="action">
+            <button className="btn-primary" onClick={() => navigate(`/room/book/${selectedRoom}/form?date=${selectedDate}&start=${jamMulai}&end=${jamSelesai}`)}>
+              Booking Ruangan Ini
+            </button>
+          </div>
+        )}
       </div>
 
       <FooterOrnament />

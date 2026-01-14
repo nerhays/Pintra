@@ -7,101 +7,51 @@
   margin-bottom: 24px;
 }
 
-/* FILTER */
 .room-filter {
   display: flex;
   gap: 12px;
   justify-content: center;
-  align-items: center;
-  margin-bottom: 32px;
-  flex-wrap: wrap;
+  margin-bottom: 24px;
 }
 
+.room-filter select,
 .room-filter input {
-  padding: 8px 10px;
+  padding: 10px;
+  border-radius: 6px;
   border: 1px solid #ccc;
-  border-radius: 4px;
 }
 
 .room-filter button {
-  padding: 8px 16px;
-  background: #006bb2;
-  color: #fff;
+  background: black;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 6px;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
 }
 
-.room-filter .to {
-  font-size: 14px;
-}
-
-/* GRID */
-.room-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+.time-wrapper {
+  display: flex;
+  justify-content: center;
   gap: 24px;
-  justify-items: center;
+  margin-bottom: 24px;
 }
 
-/* CARD */
-.room-card {
-  width: 220px;
-  background: #fff;
+.time-wrapper select {
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.action {
+  text-align: center;
+}
+
+.btn-primary {
+  background: #0b5ed7;
+  color: white;
+  padding: 12px 28px;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: none;
+  font-size: 16px;
   cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.room-card:hover {
-  transform: translateY(-4px);
-}
-
-/* IMAGE */
-.room-image {
-  height: 140px;
-  background: #e0e0e0;
-}
-
-/* INFO */
-.room-info {
-  padding: 12px;
-}
-
-.room-info h4 {
-  color: #1d4ed8;
-  font-size: 14px;
-  margin-bottom: 6px;
-}
-
-.room-info p {
-  font-size: 12px;
-  margin: 2px 0;
-}
-
-/* STATUS */
-.status {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 2px 8px;
-  font-size: 11px;
-  border-radius: 10px;
-}
-
-.available {
-  background: #22c55e;
-  color: #fff;
-}
-
-.booked {
-  background: #ef4444;
-  color: #fff;
-}
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .room-container {
-    padding: 20px;
-  }
 }
