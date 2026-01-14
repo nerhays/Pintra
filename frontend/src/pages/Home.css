@@ -25,11 +25,6 @@
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.card:hover,
-.status-box:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-}
 .card h4 span {
   font-weight: normal;
   color: #6b7280;
