@@ -109,6 +109,25 @@ function RoomBooking() {
     setJamMulai("");
     setJamSelesai("");
   }, [selectedRoom, selectedDate]);
+  function getValidEndTimes(jamMulai, availableTimes, timeSlots) {
+    if (!jamMulai) return [];
+
+    const startIndex = timeSlots.indexOf(jamMulai);
+    if (startIndex === -1) return [];
+
+    const valid = [];
+
+    for (let i = startIndex + 1; i < timeSlots.length; i++) {
+      const slot = timeSlots[i];
+
+      // ❌ begitu ketemu slot yang tidak available → STOP
+      if (!availableTimes.includes(slot)) break;
+
+      valid.push(slot);
+    }
+
+    return valid;
+  }
 
   // ================= UI =================
   return (
@@ -153,16 +172,12 @@ function RoomBooking() {
               <label>Jam Selesai</label>
               <select value={jamSelesai} onChange={(e) => setJamSelesai(e.target.value)} disabled={!jamMulai}>
                 <option value="">-- Pilih --</option>
-                {availableTimes
-                  .filter((jam) => {
-                    if (!jamMulai) return false;
-                    return availableTimes.indexOf(jam) > availableTimes.indexOf(jamMulai);
-                  })
-                  .map((jam) => (
-                    <option key={jam} value={jam}>
-                      {jam}
-                    </option>
-                  ))}
+
+                {getValidEndTimes(jamMulai, availableTimes, TIME_SLOTS).map((jam) => (
+                  <option key={jam} value={jam}>
+                    {jam}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
