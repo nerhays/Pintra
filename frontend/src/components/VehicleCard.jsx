@@ -22,7 +22,7 @@ function VehicleCard({ vehicle, start, end }) {
           {start} – {end}
         </p>
 
-        <button className="btn-book" onClick={() => navigate(`/vehicle/${vehicle.id}/form?start=${start}&end=${end}`)}>
+        <button className="btn-book" onClick={() => navigate(`/vehicle/${vehicle.id}?start=${start}&end=${end}`)}>
           Booking Kendaraan Ini
         </button>
       </div>

@@ -9,6 +9,7 @@ import Riwayat from "./pages/riwayat/Riwayat";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Profile from "./pages/profile/profile";
 import Vehicle from "./pages/vehicle/VehicleBooking";
+import VehicleDetail from "./pages/vehicle/VehicleDetail";
 import AuthRoute from "./routes/AuthRoute";
 import AdminRoute from "./routes/AdminRoute";
 
@@ -99,6 +100,14 @@ function App() {
           element={
             <AuthRoute>
               <Vehicle />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/vehicle/:vehicleId"
+          element={
+            <AuthRoute>
+              <VehicleDetail />
             </AuthRoute>
           }
         />
