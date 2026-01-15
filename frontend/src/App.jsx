@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import Profile from "./pages/profile/profile";
 import Vehicle from "./pages/vehicle/VehicleBooking";
 import VehicleDetail from "./pages/vehicle/VehicleDetail";
+import VehicleForm from "./pages/vehicle/VehicleBookingForm";
 import AuthRoute from "./routes/AuthRoute";
 import AdminRoute from "./routes/AdminRoute";
 
@@ -108,6 +109,14 @@ function App() {
           element={
             <AuthRoute>
               <VehicleDetail />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/vehicle/:vehicleId/form"
+          element={
+            <AuthRoute>
+              <VehicleForm />
             </AuthRoute>
           }
         />
