@@ -66,13 +66,13 @@ function VehicleDetail() {
         <div className="vehicle-info-wrapper">
           <div>
             <h2>{vehicle.platNomor}</h2>
-            <p>{vehicle.namaKendaraan}</p>
+            <p>{vehicle.nama}</p>
 
             <div className="vehicle-meta">
-              <div className="meta-box">🚗 {vehicle.jenisKendaraan}</div>
+              <div className="meta-box">🚗 {vehicle.jenis}</div>
               <div className="meta-box">⚙️ {vehicle.transmisi}</div>
-              <div className="meta-box">⛽ {vehicle.jenisBBM}</div>
-              <div className="meta-box">🪑 {vehicle.jumlahKursi}</div>
+              <div className="meta-box">⛽ {vehicle.bbm}</div>
+              <div className="meta-box">🪑 {vehicle.kursi}</div>
             </div>
 
             {/* JADWAL */}
