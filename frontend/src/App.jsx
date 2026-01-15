@@ -8,6 +8,7 @@ import RoomDetail from "./pages/room/RoomDetail";
 import Riwayat from "./pages/riwayat/Riwayat";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Profile from "./pages/profile/profile";
+import Vehicle from "./pages/vehicle/VehicleBooking";
 import AuthRoute from "./routes/AuthRoute";
 import AdminRoute from "./routes/AdminRoute";
 
@@ -90,6 +91,14 @@ function App() {
           element={
             <AuthRoute>
               <RoomHistoryDetail />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/vehicle"
+          element={
+            <AuthRoute>
+              <Vehicle />
             </AuthRoute>
           }
         />

@@ -1,0 +1,84 @@
+.vehicle-container {
+  padding: 40px;
+}
+
+.vehicle-title {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.vehicle-filter {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.vehicle-filter input {
+  padding: 10px;
+  width: 220px;
+}
+
+.vehicle-filter button {
+  padding: 10px 20px;
+  background: black;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.to {
+  align-self: center;
+  font-size: 14px;
+}
+
+/* CARD */
+.vehicle-list {
+  display: flex;
+  justify-content: center;
+}
+
+.vehicle-card {
+  display: flex;
+  gap: 24px;
+  width: 900px;
+  padding: 24px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.vehicle-image {
+  width: 220px;
+  height: 140px;
+  background: #ddd;
+  border-radius: 8px;
+}
+
+.vehicle-info h3 {
+  margin: 0;
+}
+
+.vehicle-spec {
+  color: #777;
+  margin-bottom: 16px;
+}
+
+.vehicle-schedule {
+  margin-bottom: 20px;
+}
+
+.btn-book {
+  padding: 10px;
+  width: 100%;
+  border: 1px solid #007bff;
+  background: white;
+  color: #007bff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-book:hover {
+  background: #007bff;
+  color: white;
+}
