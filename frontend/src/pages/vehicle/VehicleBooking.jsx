@@ -1,19 +1,41 @@
-import { useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../firebase";
+import { useEffect, useState } from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { auth, db } from "../../firebase";
 
 import Navbar from "../../components/Navbar";
 import VehicleCard from "../../components/VehicleCard";
+import Footer from "../../components/Footer";
+import FooterOrnament from "../../components/FooterOrnament";
+
 import "./VehicleBooking.css";
 
 function VehicleBooking() {
   const [keyword, setKeyword] = useState("");
   const [startDateTime, setStartDateTime] = useState("");
   const [endDateTime, setEndDateTime] = useState("");
+  const [role, setRole] = useState(null);
 
   const [vehicles, setVehicles] = useState([]);
   const [searched, setSearched] = useState(false);
 
+  // ✅ FETCH ROLE (SEKALI SAAT LOAD)
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (!auth.currentUser) return;
+
+      const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
+
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        setRole(snapshot.docs[0].data().role);
+      }
+    };
+
+    fetchRole();
+  }, []);
+
+  // 🔍 SEARCH KENDARAAN
   const handleSearch = async () => {
     if (!startDateTime || !endDateTime) {
       alert("Tanggal & jam wajib diisi");
@@ -35,7 +57,7 @@ function VehicleBooking() {
       ...d.data(),
     }));
 
-    // 2️⃣ Ambil semua booking kendaraan
+    // 2️⃣ Ambil semua booking
     const bookingSnap = await getDocs(collection(db, "vehicle_bookings"));
     const bookings = bookingSnap.docs.map((d) => d.data());
 
@@ -43,20 +65,18 @@ function VehicleBooking() {
     const availableVehicles = allVehicles.filter((vehicle) => {
       const relatedBookings = bookings.filter((b) => b.vehicleId === vehicle.id && b.status !== "COMPLETED");
 
-      // cek bentrok
       for (const booking of relatedBookings) {
         const bStart = booking.waktuPinjam.toDate();
         const bEnd = booking.waktuKembali.toDate();
 
-        const isOverlap = userStart < bEnd && userEnd > bStart;
-
-        if (isOverlap) return false;
+        const overlap = userStart < bEnd && userEnd > bStart;
+        if (overlap) return false;
       }
 
       return true;
     });
 
-    // filter keyword
+    // 4️⃣ Filter keyword
     const filtered = availableVehicles.filter((v) => `${v.nama} ${v.platNomor}`.toLowerCase().includes(keyword.toLowerCase()));
 
     setVehicles(filtered);
@@ -65,12 +85,11 @@ function VehicleBooking() {
 
   return (
     <>
-      <Navbar />
+      <Navbar role={role} />
 
       <div className="vehicle-container">
         <h2 className="vehicle-title">Peminjaman Kendaraan</h2>
 
-        {/* FILTER */}
         <div className="vehicle-filter">
           <input type="text" placeholder="Kendaraan" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
 
@@ -83,13 +102,15 @@ function VehicleBooking() {
           <button onClick={handleSearch}>Search</button>
         </div>
 
-        {/* HASIL */}
         {searched && (
           <div className="vehicle-list">
             {vehicles.length === 0 ? <p style={{ textAlign: "center" }}>Tidak ada kendaraan tersedia</p> : vehicles.map((v) => <VehicleCard key={v.id} vehicle={v} start={startDateTime} end={endDateTime} />)}
           </div>
         )}
       </div>
+
+      <FooterOrnament />
+      <Footer />
     </>
   );
 }
