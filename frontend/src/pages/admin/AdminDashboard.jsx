@@ -1,26 +1,20 @@
-import { signOut } from "firebase/auth";
-import { auth } from "../../firebase";
-import { useNavigate } from "react-router-dom";
+import AdminLayout from "../../components/admin/AdminLayout";
+import "./AdminDashboard.css";
 
 function AdminDashboard() {
-  const navigate = useNavigate();
-
-  const logout = async () => {
-    await signOut(auth);
-    navigate("/");
-  };
-
   return (
-    <div style={{ padding: 40 }}>
-      <h2>Admin Dashboard</h2>
+    <AdminLayout>
+      <div className="welcome-card">
+        <div className="welcome-text">
+          <h2>Hai, Selamat Datang</h2>
+          <p>Selamat Melanjutkan Aktivitas</p>
+        </div>
 
-      <button onClick={() => navigate("/admin/room")}>Approval Ruang</button>
-
-      <br />
-      <br />
-
-      <button onClick={logout}>Logout</button>
-    </div>
+        <div className="welcome-illustration">
+          <div className="img-box" />
+        </div>
+      </div>
+    </AdminLayout>
   );
 }
 
