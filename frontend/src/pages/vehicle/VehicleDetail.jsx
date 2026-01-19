@@ -14,12 +14,10 @@ function VehicleDetail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // 🔒 waktu dikunci dari page sebelumnya
   const start = searchParams.get("start");
   const end = searchParams.get("end");
 
   const [vehicle, setVehicle] = useState(null);
-  const [bookings, setBookings] = useState([]);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,16 +33,12 @@ function VehicleDetail() {
       // VEHICLE DETAIL
       const ref = doc(db, "vehicles", vehicleId);
       const snapVehicle = await getDoc(ref);
-      if (!snapVehicle.exists()) return;
+      if (!snapVehicle.exists()) {
+        setLoading(false);
+        return;
+      }
 
       setVehicle(snapVehicle.data());
-
-      // BOOKING HISTORY
-      const qBooking = query(collection(db, "vehicle_bookings"), where("vehicleId", "==", vehicleId));
-      const snapBooking = await getDocs(qBooking);
-
-      setBookings(snapBooking.docs.map((d) => d.data()));
-
       setLoading(false);
     };
 
@@ -62,12 +56,13 @@ function VehicleDetail() {
         {/* IMAGE */}
         <div className="vehicle-image-box" />
 
-        {/* CONTENT */}
         <div className="vehicle-info-wrapper">
+          {/* INFO */}
           <div>
             <h2>{vehicle.platNomor}</h2>
             <p>{vehicle.nama}</p>
 
+            {/* META / FASILITAS */}
             <div className="vehicle-meta">
               <div className="meta-box">🚗 {vehicle.jenis}</div>
               <div className="meta-box">⚙️ {vehicle.transmisi}</div>
@@ -75,30 +70,22 @@ function VehicleDetail() {
               <div className="meta-box">🪑 {vehicle.kursi}</div>
             </div>
 
-            {/* JADWAL */}
-            <div className="schedule">
-              <h4>Jadwal Terpakai</h4>
-
-              {bookings.length === 0 && <p className="available">Tidak ada jadwal</p>}
-
-              {bookings.map((b, i) => (
-                <div key={i} className="schedule-item">
-                  {b.waktuPinjam.toDate().toLocaleString()} – {b.waktuKembali.toDate().toLocaleString()}
-                  <span className="note">{b.keperluan || "Digunakan"}</span>
-                </div>
-              ))}
+            {/* STATUS TERSEDIA (PINDAH KE SINI) */}
+            <div className="status available status-inline">
+              {start} – {end}
+              <br />
+              <strong>Tersedia</strong>
             </div>
           </div>
 
           {/* ACTION */}
           <div className="vehicle-action">
-            <div className="status available">
-              {start} – {end}
-              <br />
-              Tersedia
-            </div>
-
-            <button className="btn-pinjam" onClick={() => navigate(`/vehicle/${vehicleId}/form?start=${start}&end=${end}`)}>
+            <button
+              className="btn-pinjam"
+              onClick={() =>
+                navigate(`/vehicle/${vehicleId}/form?start=${start}&end=${end}`)
+              }
+            >
               Pinjam
             </button>
           </div>

@@ -19,10 +19,12 @@
   gap: 32px;
 }
 
+/* META / FASILITAS */
 .vehicle-meta {
   display: flex;
   gap: 12px;
   margin: 16px 0;
+  flex-wrap: wrap;
 }
 
 .meta-box {
@@ -32,32 +34,47 @@
   font-size: 14px;
 }
 
-.schedule {
-  margin-top: 16px;
+/* STATUS */
+.status.available {
+  background: #d1f5d3;
+  color: #1e7e34;
+  padding: 12px;
+  border-radius: 10px;
   font-size: 14px;
 }
 
-.schedule-item {
-  margin-bottom: 6px;
+.status-inline {
+  margin-top: 12px;
+  max-width: 320px;
 }
 
+/* ACTION */
 .vehicle-action {
   text-align: right;
-}
-
-.status.available {
-  background: #d1f5d3;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-weight: 500;
-  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-end;
 }
 
 .btn-pinjam {
   background: #0b74c7;
   color: white;
-  padding: 10px 28px;
+  padding: 12px 32px;
   border-radius: 8px;
   border: none;
   cursor: pointer;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .vehicle-info-wrapper {
+    flex-direction: column;
+  }
+
+  .vehicle-action {
+    text-align: left;
+  }
+
+  .btn-pinjam {
+    width: 100%;
+  }
 }
