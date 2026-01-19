@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { addDoc, collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 
@@ -12,6 +12,7 @@ import "./RoomBookingForm.css";
 function RoomBookingForm() {
   const { roomId } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // 🔒 DATA TERKUNCI DARI DETAIL
   const tanggal = searchParams.get("date");
@@ -53,37 +54,47 @@ function RoomBookingForm() {
 
   // ===== SUBMIT =====
   const submitForm = async () => {
-    if (!auth.currentUser) {
-      alert("Harus login");
-      return;
+    try {
+      if (!auth.currentUser) {
+        alert("Harus login");
+        return;
+      }
+
+      if (!tanggal || !jamMulai || !jamSelesai) {
+        alert("Tanggal / jam tidak valid (akses dari halaman booking)");
+        return;
+      }
+
+      const start = new Date(`${tanggal}T${jamMulai}`);
+      const end = new Date(`${tanggal}T${jamSelesai}`);
+
+      if (!namaKegiatan || !peserta) {
+        alert("Nama kegiatan dan jumlah peserta wajib diisi");
+        return;
+      }
+
+      await addDoc(collection(db, "room_bookings"), {
+        namaKegiatan,
+        jenisRapat,
+        ruang: { roomId },
+        waktuMulai: Timestamp.fromDate(start),
+        waktuSelesai: Timestamp.fromDate(end),
+        peminjam: {
+          userId: auth.currentUser.uid,
+          email: auth.currentUser.email,
+        },
+        peserta,
+        konsumsi,
+        dekorasi: dekorasi.trim() === "" ? "NO" : dekorasi,
+        status: "PENDING",
+        createdAt: Timestamp.now(),
+      });
+
+      alert("Peminjaman ruang berhasil diajukan ✅");
+      navigate("/riwayat");
+    } catch (err) {
+      alert("Gagal submit: " + err.message);
     }
-
-    const start = new Date(`${tanggal}T${jamMulai}`);
-    const end = new Date(`${tanggal}T${jamSelesai}`);
-
-    if (!namaKegiatan || !peserta) {
-      alert("Nama kegiatan dan jumlah peserta wajib diisi");
-      return;
-    }
-
-    await addDoc(collection(db, "room_bookings"), {
-      namaKegiatan,
-      jenisRapat,
-      ruang: { roomId },
-      waktuMulai: Timestamp.fromDate(start),
-      waktuSelesai: Timestamp.fromDate(end),
-      peminjam: {
-        userId: auth.currentUser.uid,
-        email: auth.currentUser.email,
-      },
-      peserta,
-      konsumsi,
-      dekorasi: dekorasi.trim() === "" ? "NO" : dekorasi,
-      status: "PENDING",
-      createdAt: Timestamp.now(),
-    });
-
-    alert("Peminjaman ruang berhasil diajukan");
   };
 
   return (
@@ -106,7 +117,7 @@ function RoomBookingForm() {
         <div className="form-card">
           <div className="form-group">
             <label>Nama Kegiatan</label>
-            <input onChange={(e) => setNamaKegiatan(e.target.value)} />
+            <input value={namaKegiatan} onChange={(e) => setNamaKegiatan(e.target.value)} />
           </div>
 
           <div className="form-group">
@@ -119,7 +130,7 @@ function RoomBookingForm() {
 
           <div className="form-group">
             <label>Jumlah Peserta</label>
-            <input type="number" onChange={(e) => setPeserta(e.target.value)} />
+            <input type="number" value={peserta} onChange={(e) => setPeserta(e.target.value)} />
           </div>
 
           <div className="form-group">
@@ -136,7 +147,7 @@ function RoomBookingForm() {
 
           <div className="form-group full">
             <label>Request Dekorasi (Opsional)</label>
-            <textarea placeholder="Kosongkan jika tidak ada" onChange={(e) => setDekorasi(e.target.value)} />
+            <textarea placeholder="Kosongkan jika tidak ada" value={dekorasi} onChange={(e) => setDekorasi(e.target.value)} />
           </div>
 
           <div className="form-action">
