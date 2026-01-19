@@ -415,3 +415,33 @@
     width: 240px;
   }
 }
+.admin-topbar {
+  position: sticky; /* atau fixed */
+  top: 0;
+  z-index: 1000;
+}
+
+.admin-sidebar {
+  z-index: 900;
+}
+
+/* ===== MODAL harus paling atas ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999; /* 🔥 WAJIB PALING TINGGI */
+}
+
+.modal-card {
+  width: 760px;
+  max-width: 95%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  z-index: 1000000;
+}

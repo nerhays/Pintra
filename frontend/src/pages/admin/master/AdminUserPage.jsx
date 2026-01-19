@@ -1,21 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, deleteDoc, doc, getDocs, addDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../../firebase";
-import "./AdminUserPage.css";
+
 import AdminLayout from "../../../components/admin/AdminLayout";
+import "./AdminUserPage.css";
 
 function AdminUserPage() {
   const [users, setUsers] = useState([]);
   const [keyword, setKeyword] = useState("");
 
-  // modal states
   const [openForm, setOpenForm] = useState(false);
   const [mode, setMode] = useState("ADD"); // ADD | EDIT
   const [selectedId, setSelectedId] = useState(null);
 
+  const [saving, setSaving] = useState(false);
+
   // form state
   const [nama, setNama] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [nipp, setNipp] = useState("");
   const [divisi, setDivisi] = useState("");
   const [role, setRole] = useState("user");
@@ -24,6 +27,7 @@ function AdminUserPage() {
   const resetForm = () => {
     setNama("");
     setEmail("");
+    setPassword("");
     setNipp("");
     setDivisi("");
     setRole("user");
@@ -72,22 +76,47 @@ function AdminUserPage() {
   };
 
   const handleSubmit = async () => {
+    console.log("✅ tombol simpan diklik");
+
+    if (saving) return;
+
+    // ✅ VALIDASI DULU SEBELUM setSaving(true)
     if (!nama || !email || !role) {
       alert("Nama, Email, Role wajib diisi!");
       return;
     }
 
+    if (mode === "ADD" && !password) {
+      alert("Password wajib diisi untuk user baru!");
+      return;
+    }
+
+    setSaving(true);
+
     try {
       if (mode === "ADD") {
-        await addDoc(collection(db, "users"), {
-          nama,
-          email,
-          nipp,
-          divisi,
-          role,
-          noTelp,
-          createdAt: serverTimestamp(),
+        const res = await fetch("http://localhost:8080/admin/users/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nama,
+            email,
+            password,
+            nipp,
+            divisi,
+            role,
+            noTelp,
+          }),
         });
+
+        let result = {};
+        try {
+          result = await res.json();
+        } catch (e) {}
+
+        if (!res.ok) {
+          throw new Error(result.message || "Gagal tambah user (backend error)");
+        }
       } else {
         await updateDoc(doc(db, "users", selectedId), {
           nama,
@@ -102,19 +131,36 @@ function AdminUserPage() {
 
       setOpenForm(false);
       resetForm();
-      fetchUsers();
+      await fetchUsers();
+      alert("Data berhasil disimpan ✅");
     } catch (err) {
       alert("Gagal simpan user: " + err.message);
+      console.error(err);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (uid) => {
     const ok = confirm("Yakin hapus user ini?");
     if (!ok) return;
 
     try {
-      await deleteDoc(doc(db, "users", id));
-      fetchUsers();
+      const res = await fetch(`http://localhost:8080/admin/users/${uid}`, {
+        method: "DELETE",
+      });
+
+      let result = {};
+      try {
+        result = await res.json();
+      } catch (e) {}
+
+      if (!res.ok) {
+        throw new Error(result.message || "Gagal hapus user");
+      }
+
+      await fetchUsers();
+      alert("User berhasil dihapus ✅");
     } catch (err) {
       alert("Gagal delete: " + err.message);
     }
@@ -135,7 +181,6 @@ function AdminUserPage() {
           </div>
         </div>
 
-        {/* TABLE */}
         <div className="table-card">
           <table className="user-table">
             <thead>
@@ -185,7 +230,6 @@ function AdminUserPage() {
           </table>
         </div>
 
-        {/* MODAL FORM */}
         {openForm && (
           <div className="modal-overlay" onClick={() => setOpenForm(false)}>
             <div className="modal-card" onClick={(e) => e.stopPropagation()}>
@@ -201,6 +245,13 @@ function AdminUserPage() {
                   <label>Email</label>
                   <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email user" />
                 </div>
+
+                {mode === "ADD" && (
+                  <div className="form-group">
+                    <label>Password (awal)</label>
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password awal user" />
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label>NIPP</label>
@@ -228,11 +279,25 @@ function AdminUserPage() {
               </div>
 
               <div className="modal-actions">
-                <button className="btn-secondary" onClick={() => setOpenForm(false)}>
+                <button
+                  className="btn-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenForm(false);
+                  }}
+                >
                   Batal
                 </button>
-                <button className="btn-primary" onClick={handleSubmit}>
-                  Simpan
+
+                <button
+                  className="btn-primary"
+                  disabled={saving}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSubmit();
+                  }}
+                >
+                  {saving ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>
             </div>
