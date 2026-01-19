@@ -78,6 +78,137 @@
 }
 
 /* ================= TOPBAR ================= */
+/* =============== TOPBAR (UPDATED) =============== */
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-logo {
+  height: 34px;
+  cursor: pointer;
+}
+
+.notif-area,
+.profile-area {
+  position: relative;
+}
+
+.notif-btn {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  position: relative;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: red;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.notif-popup {
+  position: absolute;
+  right: 0;
+  top: 40px;
+  width: 320px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  z-index: 999;
+}
+
+.notif-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+.notif-empty {
+  padding: 14px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.notif-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f1f1;
+  cursor: pointer;
+}
+
+.notif-item:hover {
+  background: #f9fafb;
+}
+
+.notif-item.unread {
+  background: #eef6ff;
+}
+
+.notif-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: #111827;
+}
+
+.notif-message {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.profile-btn {
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.profile-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-popup {
+  position: absolute;
+  right: 0;
+  top: 40px;
+  width: 230px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  z-index: 999;
+}
+
+.profile-item {
+  padding: 12px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.profile-item:hover {
+  background: #f3f4f6;
+}
+
+.profile-item.logout {
+  color: #dc2626;
+  font-weight: 600;
+  border-bottom: none;
+}
+
 .admin-topbar {
   height: 64px;
   background: #fff;
@@ -243,7 +374,7 @@
 .submenu {
   background: rgba(0, 0, 0, 0.14);
   margin-left: 12px;
-  border-left: 2px solid rgba(255,255,255,0.25);
+  border-left: 2px solid rgba(255, 255, 255, 0.25);
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.3s ease;

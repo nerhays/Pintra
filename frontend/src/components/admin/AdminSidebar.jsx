@@ -4,6 +4,7 @@ import "./AdminLayout.css";
 function AdminSidebar({ sidebarOpen, mobileOpen }) {
   const [masterOpen, setMasterOpen] = useState(false);
   const [laporanOpen, setLaporanOpen] = useState(false);
+  const [monitoringOpen, setMonitoringOpen] = useState(false);
 
   return (
     <div
@@ -24,15 +25,10 @@ function AdminSidebar({ sidebarOpen, mobileOpen }) {
         </div>
 
         {/* MASTER DATA */}
-        <div
-          className="menu-item"
-          onClick={() => setMasterOpen(!masterOpen)}
-        >
+        <div className="menu-item" onClick={() => setMasterOpen(!masterOpen)}>
           <span className="menu-icon">📂</span>
           {sidebarOpen && <span>Master Data</span>}
-          {sidebarOpen && (
-            <span className={`arrow ${masterOpen ? "rotate" : ""}`}>▾</span>
-          )}
+          {sidebarOpen && <span className={`arrow ${masterOpen ? "rotate" : ""}`}>▾</span>}
         </div>
 
         <div className={`submenu ${masterOpen ? "show" : ""}`}>
@@ -42,20 +38,26 @@ function AdminSidebar({ sidebarOpen, mobileOpen }) {
         </div>
 
         {/* LAPORAN */}
-        <div
-          className="menu-item"
-          onClick={() => setLaporanOpen(!laporanOpen)}
-        >
+        <div className="menu-item" onClick={() => setLaporanOpen(!laporanOpen)}>
           <span className="menu-icon">📊</span>
           {sidebarOpen && <span>Perizinan</span>}
-          {sidebarOpen && (
-            <span className={`arrow ${laporanOpen ? "rotate" : ""}`}>▾</span>
-          )}
+          {sidebarOpen && <span className={`arrow ${laporanOpen ? "rotate" : ""}`}>▾</span>}
         </div>
 
         <div className={`submenu ${laporanOpen ? "show" : ""}`}>
           <div className="submenu-item">Approval Ruang</div>
           <div className="submenu-item">Approval Mobil</div>
+        </div>
+        {/* Monitoring */}
+        <div className="menu-item" onClick={() => setMonitoringOpen(!monitoringOpen)}>
+          <span className="menu-icon">📊</span>
+          {sidebarOpen && <span>Monitoring</span>}
+          {sidebarOpen && <span className={`arrow ${monitoringOpen ? "rotate" : ""}`}>▾</span>}
+        </div>
+
+        <div className={`submenu ${monitoringOpen ? "show" : ""}`}>
+          <div className="submenu-item">Monitoring Ruang</div>
+          <div className="submenu-item">Monitoring Mobil</div>
         </div>
       </div>
     </div>
