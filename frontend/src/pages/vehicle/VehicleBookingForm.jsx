@@ -89,7 +89,7 @@ function VehicleBookingForm() {
 
       await addDoc(collection(db, "vehicle_bookings"), {
         peminjamId: auth.currentUser.uid,
-        namaPeminjam: auth.currentUser.email,
+        emailPeminjam: auth.currentUser.email,
 
         keperluan,
         tujuan,
