@@ -57,27 +57,34 @@ function VehicleBooking() {
       ...d.data(),
     }));
 
-    // 2️⃣ Ambil semua booking
+    // 2️⃣ Ambil semua booking kendaraan
     const bookingSnap = await getDocs(collection(db, "vehicle_bookings"));
-    const bookings = bookingSnap.docs.map((d) => d.data());
+    const bookings = bookingSnap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
 
     // 3️⃣ Filter kendaraan tersedia
     const availableVehicles = allVehicles.filter((vehicle) => {
-      const relatedBookings = bookings.filter((b) => b.vehicleId === vehicle.id && b.status !== "COMPLETED");
+      // ✅ FIX: ambil booking yg sesuai kendaraan ini
+      const relatedBookings = bookings.filter((b) => b.vehicle?.vehicleId === vehicle.id && b.status !== "COMPLETED");
 
       for (const booking of relatedBookings) {
-        const bStart = booking.waktuPinjam.toDate();
-        const bEnd = booking.waktuKembali.toDate();
+        const bStart = booking.waktuPinjam?.toDate();
+        const bEnd = booking.waktuKembali?.toDate();
 
-        const overlap = userStart < bEnd && userEnd > bStart;
-        if (overlap) return false;
+        if (!bStart || !bEnd) continue;
+
+        // ✅ overlap check
+        const isOverlap = userStart < bEnd && userEnd > bStart;
+        if (isOverlap) return false;
       }
 
       return true;
     });
 
     // 4️⃣ Filter keyword
-    const filtered = availableVehicles.filter((v) => `${v.nama} ${v.platNomor}`.toLowerCase().includes(keyword.toLowerCase()));
+    const filtered = availableVehicles.filter((v) => `${v.nama || ""} ${v.platNomor || ""}`.toLowerCase().includes(keyword.toLowerCase()));
 
     setVehicles(filtered);
     setSearched(true);

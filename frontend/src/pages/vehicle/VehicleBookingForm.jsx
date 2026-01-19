@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { addDoc, collection, doc, getDoc, Timestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, Timestamp, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 
 import Navbar from "../../components/Navbar";
@@ -19,77 +19,117 @@ function VehicleBookingForm() {
   const end = searchParams.get("end");
 
   const [vehicle, setVehicle] = useState(null);
+  const [role, setRole] = useState(null);
 
   // FORM STATE
   const [keperluan, setKeperluan] = useState("DINAS");
   const [tujuan, setTujuan] = useState("");
   const [nomorSurat, setNomorSurat] = useState("");
   const [alasan, setAlasan] = useState("");
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   useEffect(() => {
-    const fetchVehicle = async () => {
+    const fetchData = async () => {
+      // ✅ fetch role biar dashboard admin muncul
+      if (auth.currentUser) {
+        const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
+        const snap = await getDocs(q);
+        if (!snap.empty) setRole(snap.docs[0].data().role);
+      }
+
+      // ✅ fetch vehicle detail
       const ref = doc(db, "vehicles", vehicleId);
       const snap = await getDoc(ref);
-      if (snap.exists()) setVehicle(snap.data());
+      if (snap.exists()) {
+        setVehicle({ id: snap.id, ...snap.data() });
+      }
     };
-    fetchVehicle();
+
+    fetchData();
   }, [vehicleId]);
 
   const handleSubmit = async () => {
-    if (!auth.currentUser) {
-      alert("Harus login");
-      return;
+    try {
+      if (!auth.currentUser) {
+        alert("Harus login");
+        return;
+      }
+
+      if (!start || !end) {
+        alert("Waktu pinjam tidak valid, ulangi dari halaman list kendaraan");
+        return;
+      }
+
+      if (!tujuan.trim()) {
+        alert("Tujuan wajib diisi");
+        return;
+      }
+
+      if ((keperluan === "DINAS" || keperluan === "UNDANGAN") && !nomorSurat.trim()) {
+        alert("Nomor surat wajib diisi");
+        return;
+      }
+
+      if (keperluan === "KEGIATAN_LAIN" && !alasan.trim()) {
+        alert("Alasan wajib diisi");
+        return;
+      }
+
+      setLoadingSubmit(true);
+
+      // ✅ convert waktu dari string ke Date
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        alert("Format tanggal tidak valid");
+        setLoadingSubmit(false);
+        return;
+      }
+
+      await addDoc(collection(db, "vehicle_bookings"), {
+        peminjamId: auth.currentUser.uid,
+        namaPeminjam: auth.currentUser.email,
+
+        keperluan,
+        tujuan,
+
+        nomorSurat: keperluan === "KEGIATAN_LAIN" ? "-" : nomorSurat,
+        alasan: keperluan === "KEGIATAN_LAIN" ? alasan : "-",
+
+        waktuPinjam: Timestamp.fromDate(startDate),
+        waktuKembali: Timestamp.fromDate(endDate),
+
+        vehicle: {
+          vehicleId: vehicleId,
+          platNomor: vehicle.platNomor || "-",
+          nama: vehicle.nama || "-", // ✅ ini yg benar sesuai Firestore kamu
+          tahun: vehicle.tahun || "-",
+          jenis: vehicle.jenis || "-",
+        },
+
+        status: "SUBMITTED",
+        createdAt: Timestamp.now(),
+      });
+
+      alert("✅ Pengajuan peminjaman kendaraan berhasil!");
+      navigate("/riwayat");
+    } catch (err) {
+      console.error("ERROR SUBMIT:", err);
+      alert("❌ Gagal submit: " + err.message);
+    } finally {
+      setLoadingSubmit(false);
     }
-
-    if (!tujuan) {
-      alert("Tujuan wajib diisi");
-      return;
-    }
-
-    if ((keperluan === "DINAS" || keperluan === "UNDANGAN") && !nomorSurat) {
-      alert("Nomor surat wajib diisi");
-      return;
-    }
-
-    if (keperluan === "KEGIATAN_LAIN" && !alasan) {
-      alert("Alasan wajib diisi");
-      return;
-    }
-
-    await addDoc(collection(db, "vehicle_bookings"), {
-      peminjamId: auth.currentUser.uid,
-      namaPeminjam: auth.currentUser.email,
-
-      vehicleId,
-      vehicleSnapshot: {
-        namaKendaraan: vehicle.namaKendaraan,
-        platNomor: vehicle.platNomor,
-      },
-
-      keperluan,
-      tujuan,
-      nomorSurat: keperluan === "KEGIATAN_LAIN" ? "-" : nomorSurat,
-      alasan: keperluan === "KEGIATAN_LAIN" ? alasan : "-",
-
-      waktuPinjam: Timestamp.fromDate(new Date(start)),
-      waktuKembali: Timestamp.fromDate(new Date(end)),
-
-      status: "SUBMITTED",
-      createdAt: Timestamp.now(),
-    });
-
-    alert("Pengajuan peminjaman berhasil");
-    navigate("/riwayat");
   };
 
   if (!vehicle) return <div style={{ padding: 40 }}>Loading...</div>;
 
   return (
     <>
-      <Navbar />
+      <Navbar role={role} />
 
       <div className="vehicle-form-container">
-        <h2>Formulir Peminjaman Kendaraan</h2>
+        <h2 className="vehicle-form-title">Formulir Peminjaman Kendaraan</h2>
 
         <div className="vehicle-form-card">
           {/* LEFT */}
@@ -128,14 +168,14 @@ function VehicleBookingForm() {
             <div className="vehicle-preview" />
 
             <h3>{vehicle.platNomor}</h3>
-            <p>{vehicle.namaKendaraan}</p>
+            <p>{vehicle.nama}</p>
 
             <p className="time-info">
               {start} <br /> s/d <br /> {end}
             </p>
 
-            <button className="btn-submit" onClick={handleSubmit}>
-              PINJAM
+            <button className="btn-submit" onClick={handleSubmit} disabled={loadingSubmit}>
+              {loadingSubmit ? "MENGAJUKAN..." : "PINJAM"}
             </button>
           </div>
         </div>
