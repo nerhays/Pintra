@@ -1,4 +1,5 @@
 import AdminLayout from "../../components/admin/AdminLayout";
+import welcomeImg from "../../assets/WelcomePage.png";
 import "./AdminDashboard.css";
 
 function AdminDashboard() {
@@ -11,7 +12,7 @@ function AdminDashboard() {
         </div>
 
         <div className="welcome-illustration">
-          <div className="img-box" />
+          <img src={welcomeImg} alt="Welcome" />
         </div>
       </div>
     </AdminLayout>

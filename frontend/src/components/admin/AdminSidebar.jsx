@@ -1,67 +1,62 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import "./AdminLayout.css";
 
-function AdminSidebar() {
-  const navigate = useNavigate();
-
-  const [openMenu, setOpenMenu] = useState({
-    manajemen: false,
-    monitoring: false,
-  });
+function AdminSidebar({ sidebarOpen, mobileOpen }) {
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <aside className="admin-sidebar">
+    <aside
+      className={`admin-sidebar 
+        ${sidebarOpen ? "open" : "collapsed"} 
+        ${mobileOpen ? "mobile-open" : ""}`}
+    >
+      {/* LOGO */}
       <div className="sidebar-logo">
-        <button className="burger-btn">☰</button>
+        <span className="logo-text">
+          {sidebarOpen || mobileOpen ? "ADMIN" : "A"}
+        </span>
       </div>
 
-      <div className="sidebar-menu">
-        {/* DASHBOARD */}
-        <div className="menu-item active" onClick={() => navigate("/admin")}>
-          <span className="menu-icon">▦</span>
-          <span>Dashboard</span>
+      {/* MENU */}
+      <nav className="sidebar-menu">
+        <div className="menu-item active">
+          <span className="menu-icon">🏠</span>
+          {(sidebarOpen || mobileOpen) && (
+            <span className="menu-text">Dashboard</span>
+          )}
         </div>
 
-        {/* MANAJEMEN */}
-        <div className="menu-item" onClick={() => setOpenMenu((prev) => ({ ...prev, manajemen: !prev.manajemen }))}>
-          <span className="menu-icon">👤</span>
-          <span>Manajemen</span>
+        <div
+          className="menu-item"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          <span className="menu-icon">📂</span>
+
+          {(sidebarOpen || mobileOpen) && (
+            <>
+              <span className="menu-text">Master Data</span>
+              <span className={`menu-arrow ${menuOpen ? "rotate" : ""}`}>
+                ▾
+              </span>
+            </>
+          )}
         </div>
 
-        {openMenu.manajemen && (
-          <div className="submenu">
-            <div className="submenu-item" onClick={() => navigate("/admin/users")}>
-              • User
-            </div>
-            <div className="submenu-item" onClick={() => navigate("/admin/rooms")}>
-              • Ruang
-            </div>
-            <div className="submenu-item" onClick={() => navigate("/admin/vehicles")}>
-              • Kendaraan
-            </div>
+        {(sidebarOpen || mobileOpen) && (
+          <div className={`submenu ${menuOpen ? "show" : ""}`}>
+            <div className="submenu-item">User</div>
+            <div className="submenu-item">Kendaraan</div>
+            <div className="submenu-item">Ruangan</div>
           </div>
         )}
 
-        {/* MONITORING */}
-        <div className="menu-item" onClick={() => setOpenMenu((prev) => ({ ...prev, monitoring: !prev.monitoring }))}>
-          <span className="menu-icon">🖥</span>
-          <span>Monitoring</span>
+        <div className="menu-item">
+          <span className="menu-icon">📊</span>
+          {(sidebarOpen || mobileOpen) && (
+            <span className="menu-text">Laporan</span>
+          )}
         </div>
-
-        {openMenu.monitoring && (
-          <div className="submenu">
-            <div className="submenu-item" onClick={() => navigate("/admin/approval-ruang")}>
-              • Approval Ruang
-            </div>
-            <div className="submenu-item" onClick={() => navigate("/admin/approval-mobil")}>
-              • Approval Mobil
-            </div>
-            <div className="submenu-item" onClick={() => navigate("/admin/kegiatan")}>
-              • Kegiatan
-            </div>
-          </div>
-        )}
-      </div>
+      </nav>
     </aside>
   );
 }
