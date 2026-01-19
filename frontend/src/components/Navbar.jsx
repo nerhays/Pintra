@@ -20,32 +20,20 @@ function Navbar({ role }) {
     <nav className="navbar">
       {/* LEFT */}
       <div className="navbar-left">
-        <img
-          src={logoPelindo}
-          alt="PELINDO"
-          className="navbar-logo"
-          onClick={() => navigate("/home")}
-        />
+        <img src={logoPelindo} alt="PELINDO" className="navbar-logo" onClick={() => navigate("/home")} />
       </div>
 
       {/* RIGHT DESKTOP */}
       <div className="navbar-right desktop">
-        {role === "admin" && (
-          <span onClick={() => navigate("/admin")}>Dashboard Admin</span>
-        )}
+        {(role === "admin" || role === "operator") && <span onClick={() => navigate("/admin")}>Dashboard Admin</span>}
 
         {/* ➕ MENU RIWAYAT di samping Dashboard */}
         <span onClick={() => navigate("/riwayat")}>Riwayat</span>
 
         {/* PROFILE */}
-        <div
-          className="profile-wrapper"
-          onClick={() => setProfileOpen(!profileOpen)}
-        >
+        <div className="profile-wrapper" onClick={() => setProfileOpen(!profileOpen)}>
           <img src={profileIcon} alt="profile" />
-          <span className="profile-email">
-            {auth.currentUser?.email || "User"}
-          </span>
+          <span className="profile-email">{auth.currentUser?.email || "User"}</span>
           <span>▼</span>
 
           {profileOpen && (
@@ -67,9 +55,7 @@ function Navbar({ role }) {
       {/* MOBILE MENU */}
       {menuOpen && (
         <div className="mobile-menu">
-          {role === "admin" && (
-            <div onClick={() => navigate("/admin")}>Dashboard Admin</div>
-          )}
+          {(role === "admin" || role === "operator") && <div onClick={() => navigate("/admin")}>Dashboard Admin</div>}
           <div onClick={() => navigate("/riwayat")}>Riwayat</div>
           <div onClick={() => navigate("/profile")}>Profile</div>
           <div onClick={logout}>Logout</div>

@@ -11,7 +11,7 @@ function AdminRoute({ children }) {
 
   if (loading) return null;
 
-  if (!user || role !== "admin") {
+  if (!user || (role !== "admin" && role !== "operator")) {
     console.log("❌ BUKAN ADMIN → REDIRECT KE /home");
     return <Navigate to="/home" replace />;
   }
