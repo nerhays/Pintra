@@ -55,7 +55,7 @@ function Home() {
 
       setVehicleStat({
         total: vehicles.length,
-        available: vehicles.filter((v) => v.statusAktif === "true").length,
+        available: vehicles.filter((v) => v.statusAktif).length,
       });
 
       /* ===== BOOKING USER ===== */
