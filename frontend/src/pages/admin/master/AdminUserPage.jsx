@@ -298,7 +298,7 @@ function AdminUserPage() {
 
                 <div className="form-group">
                   <label>No Telp</label>
-                  <input value={noTelp} onChange={(e) => setNoTelp(e.target.value)} placeholder="08xxxx" />
+                  <input value={noTelp} onChange={(e) => setNoTelp(e.target.value)} placeholder="628xxxx" />
                 </div>
               </div>
 
