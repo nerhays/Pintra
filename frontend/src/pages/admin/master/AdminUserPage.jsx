@@ -182,52 +182,56 @@ function AdminUserPage() {
         </div>
 
         <div className="table-card">
-          <table className="user-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Nama</th>
-                <th>Email</th>
-                <th>NIPP</th>
-                <th>Divisi</th>
-                <th>Role</th>
-                <th>No Telp</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredUsers.length === 0 ? (
+          <div className="table-scroll-mobile">
+            <table className="user-table">
+              <thead>
                 <tr>
-                  <td colSpan="8" style={{ textAlign: "center", padding: 20 }}>
-                    Tidak ada data user
-                  </td>
+                  <th>No</th>
+                  <th>Nama</th>
+                  <th>Email</th>
+                  <th>NIPP</th>
+                  <th>Divisi</th>
+                  <th>Role</th>
+                  <th>No Telp</th>
+                  <th className="sticky-action">Aksi</th>
                 </tr>
-              ) : (
-                filteredUsers.map((u, i) => (
-                  <tr key={u.id}>
-                    <td>{i + 1}</td>
-                    <td>{u.nama || "-"}</td>
-                    <td>{u.email || "-"}</td>
-                    <td>{u.nipp || "-"}</td>
-                    <td>{u.divisi || "-"}</td>
-                    <td>
-                      <span className={`role-badge ${u.role || "user"}`}>{u.role || "user"}</span>
-                    </td>
-                    <td>{u.noTelp || "-"}</td>
-                    <td>
-                      <button className="btn-small" onClick={() => openEdit(u)}>
-                        Edit
-                      </button>
-                      <button className="btn-small danger" onClick={() => handleDelete(u.id)}>
-                        Hapus
-                      </button>
+              </thead>
+
+              <tbody>
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: "center", padding: 20 }}>
+                      Tidak ada data user
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredUsers.map((u, i) => (
+                    <tr key={u.id}>
+                      <td>{i + 1}</td>
+                      <td>{u.nama || "-"}</td>
+                      <td>{u.email || "-"}</td>
+                      <td>{u.nipp || "-"}</td>
+                      <td>{u.divisi || "-"}</td>
+                      <td>
+                        <span className={`role-badge ${u.role || "user"}`}>{u.role || "user"}</span>
+                      </td>
+                      <td>{u.noTelp || "-"}</td>
+
+                      {/* ✅ sticky */}
+                      <td className="sticky-action">
+                        <button className="btn-small" onClick={() => openEdit(u)}>
+                          Edit
+                        </button>
+                        <button className="btn-small danger" onClick={() => handleDelete(u.id)}>
+                          Hapus
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {openForm && (

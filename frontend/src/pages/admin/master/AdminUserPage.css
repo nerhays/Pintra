@@ -196,3 +196,39 @@
     grid-template-columns: 1fr;
   }
 }
+/* ✅ biar sticky bisa jalan */
+.user-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* ✅ wrapper scroll khusus mobile */
+.table-scroll-mobile {
+  width: 100%;
+}
+
+/* ✅ responsive: bisa geser table */
+@media (max-width: 768px) {
+  .table-scroll-mobile {
+    overflow-x: auto;
+  }
+
+  .user-table {
+    min-width: 900px; /* paksa tabel lebih lebar biar muncul scroll */
+  }
+}
+
+/* ✅ Sticky kolom Aksi */
+.sticky-action {
+  position: sticky;
+  right: 0;
+  background: white;
+  z-index: 3;
+  box-shadow: -6px 0 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ✅ sticky header juga */
+.user-table thead th.sticky-action {
+  background: #f9fafb;
+  z-index: 5;
+}
