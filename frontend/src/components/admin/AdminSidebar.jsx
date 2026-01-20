@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./AdminLayout.css";
 
-function AdminSidebar({ sidebarOpen, mobileOpen }) {
+function AdminSidebar({ sidebarOpen, mobileOpen, onCloseMobile }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -10,42 +10,55 @@ function AdminSidebar({ sidebarOpen, mobileOpen }) {
   const [laporanOpen, setLaporanOpen] = useState(false);
   const [monitoringOpen, setMonitoringOpen] = useState(false);
 
-  // ✅ helper untuk active class
+  // ✅ helper active
   const isActive = (path) => location.pathname === path;
+
+  // ✅ auto open dropdown sesuai halaman aktif (biar user ga bingung)
+  useEffect(() => {
+    if (location.pathname.startsWith("/admin/master")) setMasterOpen(true);
+    if (location.pathname.startsWith("/admin/approval")) setLaporanOpen(true);
+    if (location.pathname.startsWith("/admin/monitoring")) setMonitoringOpen(true);
+  }, [location.pathname]);
+
+  const go = (path) => {
+    navigate(path);
+    // ✅ kalau mobile, setelah klik menu -> sidebar auto tutup
+    if (mobileOpen && onCloseMobile) onCloseMobile();
+  };
 
   return (
     <div
       className={`admin-sidebar 
         ${sidebarOpen ? "open" : "collapsed"} 
-        ${mobileOpen ? "open" : ""}`}
+        ${mobileOpen ? "mobile-open" : ""}`}
     >
       {/* LOGO */}
-      <div className="sidebar-logo" onClick={() => navigate("/admin")} style={{ cursor: "pointer" }}>
+      <div className="sidebar-logo" onClick={() => go("/admin")} style={{ cursor: "pointer" }}>
         <h3>{sidebarOpen ? "ADMIN" : "A"}</h3>
       </div>
 
       <div className="sidebar-menu">
-        {/* ✅ DASHBOARD (CLICKABLE) */}
-        <div className={`menu-item ${isActive("/admin") ? "active" : ""}`} onClick={() => navigate("/admin")} style={{ cursor: "pointer" }}>
+        {/* DASHBOARD */}
+        <div className={`menu-item ${isActive("/admin") ? "active" : ""}`} onClick={() => go("/admin")}>
           <span className="menu-icon">🏠</span>
-          {sidebarOpen && <span>Dashboard</span>}
+          {sidebarOpen && <span className="menu-text">Dashboard</span>}
         </div>
 
         {/* MASTER DATA */}
         <div className="menu-item" onClick={() => setMasterOpen(!masterOpen)}>
           <span className="menu-icon">📂</span>
-          {sidebarOpen && <span>Master Data</span>}
-          {sidebarOpen && <span className={`arrow ${masterOpen ? "rotate" : ""}`}>▾</span>}
+          {sidebarOpen && <span className="menu-text">Master Data</span>}
+          {sidebarOpen && <span className={`menu-arrow ${masterOpen ? "rotate" : ""}`}>▾</span>}
         </div>
 
         <div className={`submenu ${masterOpen ? "show" : ""}`}>
-          <div className="submenu-item" onClick={() => navigate("/admin/master/user")}>
+          <div className={`submenu-item ${isActive("/admin/master/user") ? "active-submenu" : ""}`} onClick={() => go("/admin/master/user")}>
             User
           </div>
-          <div className="submenu-item" onClick={() => navigate("/admin/master/kendaraan")}>
+          <div className={`submenu-item ${isActive("/admin/master/kendaraan") ? "active-submenu" : ""}`} onClick={() => go("/admin/master/kendaraan")}>
             Kendaraan
           </div>
-          <div className="submenu-item" onClick={() => navigate("/admin/master/room")}>
+          <div className={`submenu-item ${isActive("/admin/master/room") ? "active-submenu" : ""}`} onClick={() => go("/admin/master/room")}>
             Ruangan
           </div>
         </div>
@@ -53,32 +66,32 @@ function AdminSidebar({ sidebarOpen, mobileOpen }) {
         {/* PERIZINAN */}
         <div className="menu-item" onClick={() => setLaporanOpen(!laporanOpen)}>
           <span className="menu-icon">✅</span>
-          {sidebarOpen && <span>Perizinan</span>}
-          {sidebarOpen && <span className={`arrow ${laporanOpen ? "rotate" : ""}`}>▾</span>}
+          {sidebarOpen && <span className="menu-text">Approval</span>}
+          {sidebarOpen && <span className={`menu-arrow ${laporanOpen ? "rotate" : ""}`}>▾</span>}
         </div>
 
         <div className={`submenu ${laporanOpen ? "show" : ""}`}>
-          <div className="submenu-item" onClick={() => navigate("/admin/approval/ruang")}>
-            Approval Ruang
+          <div className={`submenu-item ${isActive("/admin/approval/ruang") ? "active-submenu" : ""}`} onClick={() => go("/admin/approval/ruang")}>
+            Ruang
           </div>
-          <div className="submenu-item" onClick={() => navigate("/admin/approval/mobil")}>
-            Approval Mobil
+          <div className={`submenu-item ${isActive("/admin/approval/mobil") ? "active-submenu" : ""}`} onClick={() => go("/admin/approval/mobil")}>
+            Mobil
           </div>
         </div>
 
         {/* MONITORING */}
         <div className="menu-item" onClick={() => setMonitoringOpen(!monitoringOpen)}>
           <span className="menu-icon">📡</span>
-          {sidebarOpen && <span>Monitoring</span>}
-          {sidebarOpen && <span className={`arrow ${monitoringOpen ? "rotate" : ""}`}>▾</span>}
+          {sidebarOpen && <span className="menu-text">Monitoring</span>}
+          {sidebarOpen && <span className={`menu-arrow ${monitoringOpen ? "rotate" : ""}`}>▾</span>}
         </div>
 
         <div className={`submenu ${monitoringOpen ? "show" : ""}`}>
-          <div className="submenu-item" onClick={() => navigate("/admin/monitoring/ruang")}>
-            Monitoring Ruang
+          <div className={`submenu-item ${isActive("/admin/monitoring/ruang") ? "active-submenu" : ""}`} onClick={() => go("/admin/monitoring/ruang")}>
+            Ruang
           </div>
-          <div className="submenu-item" onClick={() => navigate("/admin/monitoring/mobil")}>
-            Monitoring Mobil
+          <div className={`submenu-item ${isActive("/admin/monitoring/mobil") ? "active-submenu" : ""}`} onClick={() => go("/admin/monitoring/mobil")}>
+            Mobil
           </div>
         </div>
       </div>

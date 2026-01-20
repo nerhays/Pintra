@@ -4,38 +4,30 @@ import AdminTopbar from "./AdminTopbar";
 import "./AdminLayout.css";
 
 function AdminLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // desktop collapse
+  const [mobileOpen, setMobileOpen] = useState(false); // mobile open
 
   const toggleSidebar = () => {
+    // kalau layar mobile, togglenya mobileOpen
     if (window.innerWidth <= 768) {
-      setMobileOpen(!mobileOpen);
+      setMobileOpen((prev) => !prev);
     } else {
-      setSidebarOpen(!sidebarOpen);
+      setSidebarOpen((prev) => !prev);
     }
   };
 
   return (
-    <>
-      {mobileOpen && (
-        <div
-          className="sidebar-overlay show"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+    <div className="admin-layout">
+      {/* ✅ overlay */}
+      {mobileOpen && <div className="sidebar-overlay show" onClick={() => setMobileOpen(false)} />}
 
-      <div className="admin-layout">
-        <AdminSidebar
-          sidebarOpen={sidebarOpen}
-          mobileOpen={mobileOpen}
-        />
+      <AdminSidebar sidebarOpen={sidebarOpen} mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
 
-        <div className="admin-main">
-          <AdminTopbar onToggleSidebar={toggleSidebar} />
-          <div className="admin-content">{children}</div>
-        </div>
+      <div className="admin-main">
+        <AdminTopbar onToggleSidebar={toggleSidebar} />
+        <div className="admin-content">{children}</div>
       </div>
-    </>
+    </div>
   );
 }
 
