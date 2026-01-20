@@ -203,3 +203,49 @@
     grid-template-columns: 1fr;
   }
 }
+/* default desktop: ga usah scroll */
+.table-scroll-mobile {
+  width: 100%;
+}
+
+/* ✅ hanya aktif saat layar kecil */
+@media (max-width: 768px) {
+  .table-scroll-mobile {
+    overflow-x: auto;
+  }
+
+  .room-table {
+    min-width: 900px; /* biar muncul scroll */
+  }
+}
+@media (max-width: 768px) {
+  .table-scroll-mobile::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .table-scroll-mobile::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+  }
+}
+/* default desktop: normal */
+.sticky-action {
+  position: static;
+  box-shadow: none;
+}
+
+/* ✅ mobile only sticky */
+@media (max-width: 768px) {
+  .sticky-action {
+    position: sticky;
+    right: 0;
+    background: white;
+    z-index: 3;
+    box-shadow: -6px 0 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .room-table thead th.sticky-action {
+    background: #f9fafb;
+    z-index: 5;
+  }
+}

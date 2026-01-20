@@ -162,29 +162,23 @@ function AdminRoomPage() {
 
         {/* TABLE */}
         <div className="table-card">
-          <table className="room-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Nama Ruang</th>
-                <th>Lokasi</th>
-                <th>Kapasitas</th>
-                <th>Tipe</th>
-                <th>Status</th>
-                <th>Fasilitas</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredRooms.length === 0 ? (
+          <div className="table-scroll-mobile">
+            <table className="room-table">
+              <thead>
                 <tr>
-                  <td colSpan="8" style={{ textAlign: "center", padding: 20 }}>
-                    Tidak ada data ruangan
-                  </td>
+                  <th>No</th>
+                  <th>Nama Ruang</th>
+                  <th>Lokasi</th>
+                  <th>Kapasitas</th>
+                  <th>Tipe</th>
+                  <th>Status</th>
+                  <th>Fasilitas</th>
+                  <th className="sticky-action">Aksi</th>
                 </tr>
-              ) : (
-                filteredRooms.map((r, i) => (
+              </thead>
+
+              <tbody>
+                {filteredRooms.map((r, i) => (
                   <tr key={r.id}>
                     <td>{i + 1}</td>
                     <td>{r.namaRuang || "-"}</td>
@@ -196,8 +190,10 @@ function AdminRoomPage() {
                     <td>
                       <span className={`status-badge ${r.status || "available"}`}>{r.status || "available"}</span>
                     </td>
-                    <td>{Array.isArray(r.fasilitas) && r.fasilitas.length > 0 ? r.fasilitas.join(", ") : "-"}</td>
-                    <td>
+                    <td>{Array.isArray(r.fasilitas) ? r.fasilitas.join(", ") : "-"}</td>
+
+                    {/* ✅ sticky */}
+                    <td className="sticky-action">
                       <button className="btn-small" onClick={() => openEdit(r)}>
                         Edit
                       </button>
@@ -206,10 +202,10 @@ function AdminRoomPage() {
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* MODAL FORM */}
