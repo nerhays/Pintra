@@ -292,8 +292,7 @@ function AdminKendaraanPage() {
                   <label>Jenis BBM</label>
                   <select value={bbm} onChange={(e) => setBbm(e.target.value)}>
                     <option value="Bensin">Bensin</option>
-                    <option value="Solar">Solar</option>
-                    <option value="Pertamax">Pertamax</option>
+                    <option value="Diesel">Diesel</option>
                   </select>
                 </div>
 
