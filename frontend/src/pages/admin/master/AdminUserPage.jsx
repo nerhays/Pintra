@@ -19,8 +19,11 @@ function AdminUserPage() {
   const [nama, setNama] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [nipp, setNipp] = useState("");
   const [divisi, setDivisi] = useState("");
+  const [jabatan, setJabatan] = useState("Staff"); // ✅ NEW
+
   const [role, setRole] = useState("user");
   const [noTelp, setNoTelp] = useState("");
 
@@ -30,6 +33,7 @@ function AdminUserPage() {
     setPassword("");
     setNipp("");
     setDivisi("");
+    setJabatan("Staff"); // ✅ NEW
     setRole("user");
     setNoTelp("");
     setSelectedId(null);
@@ -50,7 +54,7 @@ function AdminUserPage() {
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
-      const text = `${u.nama || ""} ${u.email || ""} ${u.nipp || ""} ${u.divisi || ""} ${u.role || ""}`.toLowerCase();
+      const text = `${u.nama || ""} ${u.email || ""} ${u.nipp || ""} ${u.divisi || ""} ${u.jabatan || ""} ${u.role || ""} ${u.noTelp || ""}`.toLowerCase();
       return text.includes(keyword.toLowerCase());
     });
   }, [users, keyword]);
@@ -69,6 +73,7 @@ function AdminUserPage() {
     setEmail(u.email || "");
     setNipp(u.nipp || "");
     setDivisi(u.divisi || "");
+    setJabatan(u.jabatan || "Staff"); // ✅ NEW
     setRole(u.role || "user");
     setNoTelp(u.noTelp || "");
 
@@ -76,13 +81,11 @@ function AdminUserPage() {
   };
 
   const handleSubmit = async () => {
-    console.log("✅ tombol simpan diklik");
-
     if (saving) return;
 
-    // ✅ VALIDASI DULU SEBELUM setSaving(true)
-    if (!nama || !email || !role) {
-      alert("Nama, Email, Role wajib diisi!");
+    // ✅ validasi
+    if (!nama || !email || !role || !jabatan) {
+      alert("Nama, Email, Jabatan, Role wajib diisi!");
       return;
     }
 
@@ -95,6 +98,7 @@ function AdminUserPage() {
 
     try {
       if (mode === "ADD") {
+        // ✅ CREATE lewat backend (Auth + Firestore)
         const res = await fetch("http://localhost:8080/admin/users/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -104,6 +108,7 @@ function AdminUserPage() {
             password,
             nipp,
             divisi,
+            jabatan, // ✅ NEW
             role,
             noTelp,
           }),
@@ -118,11 +123,13 @@ function AdminUserPage() {
           throw new Error(result.message || "Gagal tambah user (backend error)");
         }
       } else {
+        // ✅ EDIT hanya Firestore
         await updateDoc(doc(db, "users", selectedId), {
           nama,
           email,
           nipp,
           divisi,
+          jabatan, // ✅ NEW
           role,
           noTelp,
           updatedAt: serverTimestamp(),
@@ -173,7 +180,7 @@ function AdminUserPage() {
           <h2>Master Data User</h2>
 
           <div className="admin-user-actions">
-            <input className="search-input" placeholder="Cari nama/email/nipp/divisi/role..." value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+            <input className="search-input" placeholder="Cari nama/email/nipp/divisi/jabatan/role..." value={keyword} onChange={(e) => setKeyword(e.target.value)} />
 
             <button className="btn-primary" onClick={openAdd}>
               + Tambah User
@@ -191,6 +198,7 @@ function AdminUserPage() {
                   <th>Email</th>
                   <th>NIPP</th>
                   <th>Divisi</th>
+                  <th>Jabatan</th> {/* ✅ NEW */}
                   <th>Role</th>
                   <th>No Telp</th>
                   <th className="sticky-action">Aksi</th>
@@ -200,7 +208,7 @@ function AdminUserPage() {
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: "center", padding: 20 }}>
+                    <td colSpan="9" style={{ textAlign: "center", padding: 20 }}>
                       Tidak ada data user
                     </td>
                   </tr>
@@ -213,11 +221,13 @@ function AdminUserPage() {
                       <td>{u.nipp || "-"}</td>
                       <td>{u.divisi || "-"}</td>
                       <td>
+                        <span className={`jabatan-badge ${u.jabatan === "Manager" ? "manager" : "staff"}`}>{u.jabatan || "-"}</span>
+                      </td>
+                      <td>
                         <span className={`role-badge ${u.role || "user"}`}>{u.role || "user"}</span>
                       </td>
                       <td>{u.noTelp || "-"}</td>
 
-                      {/* ✅ sticky */}
                       <td className="sticky-action">
                         <button className="btn-small" onClick={() => openEdit(u)}>
                           Edit
@@ -234,6 +244,7 @@ function AdminUserPage() {
           </div>
         </div>
 
+        {/* MODAL FORM */}
         {openForm && (
           <div className="modal-overlay" onClick={() => setOpenForm(false)}>
             <div className="modal-card" onClick={(e) => e.stopPropagation()}>
@@ -265,6 +276,15 @@ function AdminUserPage() {
                 <div className="form-group">
                   <label>Divisi</label>
                   <input value={divisi} onChange={(e) => setDivisi(e.target.value)} placeholder="Divisi" />
+                </div>
+
+                {/* ✅ NEW: Jabatan */}
+                <div className="form-group">
+                  <label>Jabatan</label>
+                  <select value={jabatan} onChange={(e) => setJabatan(e.target.value)}>
+                    <option value="Staff">Staff</option>
+                    <option value="Manager">Manager</option>
+                  </select>
                 </div>
 
                 <div className="form-group">

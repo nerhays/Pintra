@@ -232,3 +232,20 @@
   background: #f9fafb;
   z-index: 5;
 }
+.jabatan-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.jabatan-badge.manager {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.jabatan-badge.staff {
+  background: #e0e7ff;
+  color: #3730a3;
+}

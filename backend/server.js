@@ -27,11 +27,11 @@ app.get("/", (req, res) => {
  */
 app.post("/admin/users/create", async (req, res) => {
   try {
-    const { nama, email, password, nipp, divisi, role, noTelp } = req.body;
+    const { nama, email, password, nipp, divisi, jabatan, role, noTelp } = req.body;
 
-    if (!nama || !email || !password || !nipp || !role) {
+    if (!nama || !email || !password || !nipp || !role || !jabatan) {
       return res.status(400).json({
-        message: "Field wajib: nama, email, password, nipp, role",
+        message: "Field wajib: nama, email, password, nipp, jabatan, role",
       });
     }
 
@@ -53,6 +53,7 @@ app.post("/admin/users/create", async (req, res) => {
         email,
         nipp,
         divisi: divisi || "-",
+        jabatan: jabatan || "Staff", // ✅ NEW
         role,
         noTelp: noTelp || "-",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
