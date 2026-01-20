@@ -15,7 +15,8 @@ import AuthRoute from "./routes/AuthRoute";
 import AdminRoute from "./routes/AdminRoute";
 import AdminUserPage from "./pages/admin/master/AdminUserPage";
 import AdminRoomPage from "./pages/admin/master/AdminRoomPage";
-import AdminKendaraan from "./pages/admin/master/AdminKendaraan";
+import AdminKendaraan from "./pages/admin/master/AdminKendaraanPage";
+
 import VehicleHistoryDetail from "./components/riwayat/VehicleHistoryDetail";
 import RoomHistoryDetail from "./components/riwayat/RoomHistoryDetail";
 function App() {
@@ -138,8 +139,7 @@ function App() {
             </AdminRoute>
           }
         />
-      </Routes>
-      
+
         <Route
           path="/admin/master/kendaraan"
           element={
@@ -148,6 +148,7 @@ function App() {
             </AdminRoute>
           }
         />
+      </Routes>
     </BrowserRouter>
   );
 }
