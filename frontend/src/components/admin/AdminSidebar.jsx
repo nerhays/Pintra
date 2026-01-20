@@ -45,7 +45,7 @@ function AdminSidebar({ sidebarOpen, mobileOpen }) {
           <div className="submenu-item" onClick={() => navigate("/admin/master/kendaraan")}>
             Kendaraan
           </div>
-          <div className="submenu-item" onClick={() => navigate("/admin/master/ruang")}>
+          <div className="submenu-item" onClick={() => navigate("/admin/master/room")}>
             Ruangan
           </div>
         </div>

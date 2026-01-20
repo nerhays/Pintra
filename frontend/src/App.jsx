@@ -14,6 +14,7 @@ import VehicleForm from "./pages/vehicle/VehicleBookingForm";
 import AuthRoute from "./routes/AuthRoute";
 import AdminRoute from "./routes/AdminRoute";
 import AdminUserPage from "./pages/admin/master/AdminUserPage";
+import AdminRoomPage from "./pages/admin/master/AdminRoomPage";
 
 import VehicleHistoryDetail from "./components/riwayat/VehicleHistoryDetail";
 import RoomHistoryDetail from "./components/riwayat/RoomHistoryDetail";
@@ -126,6 +127,14 @@ function App() {
           element={
             <AdminRoute>
               <AdminUserPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/master/room"
+          element={
+            <AdminRoute>
+              <AdminRoomPage />
             </AdminRoute>
           }
         />
