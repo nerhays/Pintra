@@ -119,7 +119,7 @@ function RoomBookingForm() {
             <label>Nama Kegiatan</label>
             <input value={namaKegiatan} onChange={(e) => setNamaKegiatan(e.target.value)} />
           </div>
-
+          <br />
           <div className="form-group">
             <label>Jenis Rapat</label>
             <select value={jenisRapat} onChange={(e) => setJenisRapat(e.target.value)}>
@@ -127,12 +127,12 @@ function RoomBookingForm() {
               <option value="HYBRID">Hybrid</option>
             </select>
           </div>
-
+          <br />
           <div className="form-group">
             <label>Jumlah Peserta</label>
             <input type="number" value={peserta} onChange={(e) => setPeserta(e.target.value)} />
           </div>
-
+          <br />
           <div className="form-group">
             <label>Add Konsumsi</label>
             <div className="checkbox-group">
@@ -144,7 +144,7 @@ function RoomBookingForm() {
               ))}
             </div>
           </div>
-
+          <br />
           <div className="form-group full">
             <label>Request Dekorasi (Opsional)</label>
             <textarea placeholder="Kosongkan jika tidak ada" value={dekorasi} onChange={(e) => setDekorasi(e.target.value)} />
