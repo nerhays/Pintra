@@ -94,35 +94,55 @@ function Home() {
             Status Ketersediaan <span>(Live Update)</span>
           </h4>
 
-          <div className="progress-row">
-            <span>Ruang Rapat</span>
-            <div className="progress">
-              <div
-                className="progress-fill green"
-                style={{
-                  width: `${(roomStat.available / roomStat.total) * 100 || 0}%`,
-                }}
-              />
+          <div className="availability-grid">
+            {/* RUANG */}
+            <div className="availability-item">
+              <div className="availability-top">
+                <span className="availability-title">Ruang Rapat</span>
+                <span className="availability-count">
+                  {roomStat.available}/{roomStat.total}
+                </span>
+              </div>
+
+              <div className="progress">
+                <div
+                  className="progress-fill primary"
+                  style={{
+                    width: `${(roomStat.available / roomStat.total) * 100 || 0}%`,
+                  }}
+                />
+              </div>
+
+              <small>
+                {roomStat.available} Aktif / {roomStat.total} Total
+              </small>
             </div>
-            <small>
-              {roomStat.available} Tersedia / {roomStat.total} Total
-            </small>
+
+            {/* KENDARAAN */}
+            <div className="availability-item">
+              <div className="availability-top">
+                <span className="availability-title">Kendaraan</span>
+                <span className="availability-count">
+                  {vehicleStat.available}/{vehicleStat.total}
+                </span>
+              </div>
+
+              <div className="progress">
+                <div
+                  className="progress-fill secondary"
+                  style={{
+                    width: `${(vehicleStat.available / vehicleStat.total) * 100 || 0}%`,
+                  }}
+                />
+              </div>
+
+              <small>
+                {vehicleStat.available} Aktif / {vehicleStat.total} Total
+              </small>
+            </div>
           </div>
 
-          <div className="progress-row">
-            <span>Kendaraan</span>
-            <div className="progress">
-              <div
-                className="progress-fill red"
-                style={{
-                  width: `${(vehicleStat.available / vehicleStat.total) * 100 || 0}%`,
-                }}
-              />
-            </div>
-            <small>
-              {vehicleStat.available} Tersedia / {vehicleStat.total} Total
-            </small>
-          </div>
+          <p className="availability-note">*Aktif = bisa dipinjam (tidak maintenance). Ketersediaan jam dicek saat booking.</p>
         </div>
 
         {/* 🔷 STATUS PENGAJUAN */}
