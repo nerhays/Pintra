@@ -39,7 +39,6 @@ function RoomBookingForm() {
       if (!auth.currentUser) return;
 
       const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
-
       const snap = await getDocs(q);
 
       if (!snap.empty) {
@@ -67,7 +66,7 @@ function RoomBookingForm() {
     setKonsumsi(updated);
   };
 
-  // ✅ cari manager divisi
+  // ✅ cari manager divisi (untuk staff/operator yang bukan manager)
   const findManagerDivisi = async (divisi) => {
     if (!divisi) return null;
 
@@ -113,14 +112,22 @@ function RoomBookingForm() {
       const start = new Date(`${tanggal}T${jamMulai}`);
       const end = new Date(`${tanggal}T${jamSelesai}`);
 
+      if (end <= start) {
+        alert("Jam selesai harus lebih besar dari jam mulai");
+        return;
+      }
+
       setSaving(true);
 
-      // ✅ cek apakah peminjam admin
-      const isAdminBorrower = userProfile.role === "admin";
+      const role = (userProfile.role || "").toLowerCase();
+      const jabatan = (userProfile.jabatan || "").toLowerCase();
 
-      // ✅ cari manager (kalau bukan admin)
+      const isAdminBorrower = role === "admin";
+      const isManagerBorrower = jabatan === "manager";
+
+      // ✅ cari manager kalau peminjam bukan admin dan bukan manager
       let manager = null;
-      if (!isAdminBorrower) {
+      if (!isAdminBorrower && !isManagerBorrower) {
         manager = await findManagerDivisi(userProfile.divisi);
 
         if (!manager) {
@@ -131,34 +138,48 @@ function RoomBookingForm() {
       }
 
       // ✅ status awal
-      const initialStatus = isAdminBorrower ? "APPROVED" : "WAITING_MANAGER";
+      // admin -> langsung approved
+      // manager -> auto approve manager, masuk WAITING_OPERATOR
+      // staff -> WAITING_MANAGER
+      let initialStatus = "WAITING_MANAGER";
+      if (isAdminBorrower) initialStatus = "APPROVED";
+      else if (isManagerBorrower) initialStatus = "WAITING_OPERATOR";
+
+      const now = Timestamp.now();
 
       // ✅ approval object
       const approval = {
-        manager: isAdminBorrower
-          ? { uid: "-", nama: "-", email: "-", status: "AUTO_APPROVED" }
-          : {
-              uid: manager.uid,
-              nama: manager.nama || "-",
-              email: manager.email || "-",
-              status: "PENDING",
-              approvedAt: null,
-            },
+        manager:
+          isAdminBorrower || isManagerBorrower
+            ? {
+                uid: auth.currentUser.uid,
+                nama: userProfile.nama || "-",
+                email: userProfile.email || auth.currentUser.email,
+                status: "APPROVED",
+                approvedAt: now,
+              }
+            : {
+                uid: manager.uid,
+                nama: manager.nama || "-",
+                email: manager.email || "-",
+                status: "PENDING",
+                approvedAt: null,
+              },
 
         operator: {
           uid: "-",
           nama: "-",
           email: "-",
-          status: isAdminBorrower ? "AUTO_APPROVED" : "WAITING",
-          approvedAt: null,
+          status: isAdminBorrower ? "APPROVED" : "WAITING",
+          approvedAt: isAdminBorrower ? now : null,
         },
 
         admin: {
           uid: "-",
           nama: "-",
           email: "-",
-          status: isAdminBorrower ? "AUTO_APPROVED" : "WAITING",
-          approvedAt: null,
+          status: isAdminBorrower ? "APPROVED" : "WAITING",
+          approvedAt: isAdminBorrower ? now : null,
         },
       };
 
@@ -190,11 +211,16 @@ function RoomBookingForm() {
 
         approval,
         status: initialStatus,
-
-        createdAt: Timestamp.now(),
+        createdAt: now,
       });
 
-      alert(isAdminBorrower ? "Booking berhasil ✅ (Auto Approved karena akun admin)" : "Booking berhasil diajukan ✅ Menunggu approval manager");
+      if (isAdminBorrower) {
+        alert("Booking berhasil ✅ (Auto Approved karena akun ADMIN)");
+      } else if (isManagerBorrower) {
+        alert("Booking berhasil ✅ (Auto Approved Manager, lanjut approval Operator)");
+      } else {
+        alert("Booking berhasil diajukan ✅ Menunggu approval Manager");
+      }
 
       navigate("/riwayat");
     } catch (err) {

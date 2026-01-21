@@ -31,7 +31,7 @@ function AdminApprovalRuangPage() {
     }
   };
 
-  // ===================== STATUS BY APPROVER =====================
+  // ===================== LEVEL LOGIC =====================
   const getMyApprovalLevel = (profile) => {
     const role = (profile?.role || "").toLowerCase();
     const jabatan = (profile?.jabatan || "").toLowerCase();
@@ -63,13 +63,43 @@ function AdminApprovalRuangPage() {
       const snap = await getDoc(roomRef);
       if (!snap.exists()) return null;
 
-      return {
-        id: snap.id,
-        ...snap.data(),
-      };
+      return { id: snap.id, ...snap.data() };
     } catch {
       return null;
     }
+  };
+
+  // ===================== CHECK CONFLICT (ANTI DOUBLE BOOKING) =====================
+  const hasScheduleConflict = async (booking) => {
+    const roomId = booking?.ruang?.roomId;
+    if (!roomId) return false;
+
+    const start = booking.waktuMulai?.toDate?.();
+    const end = booking.waktuSelesai?.toDate?.();
+    if (!start || !end) return false;
+
+    // ambil yang sudah final approved
+    const q = query(collection(db, "room_bookings"), where("ruang.roomId", "==", roomId), where("status", "==", "APPROVED"));
+
+    const snap = await getDocs(q);
+
+    const isOverlap = (aStart, aEnd, bStart, bEnd) => aStart < bEnd && bStart < aEnd;
+
+    for (const docSnap of snap.docs) {
+      if (docSnap.id === booking.id) continue;
+
+      const other = docSnap.data();
+      const oStart = other.waktuMulai?.toDate?.();
+      const oEnd = other.waktuSelesai?.toDate?.();
+
+      if (!oStart || !oEnd) continue;
+
+      if (isOverlap(start, end, oStart, oEnd)) {
+        return true;
+      }
+    }
+
+    return false;
   };
 
   // ===================== FETCH BOOKINGS =====================
@@ -79,7 +109,6 @@ function AdminApprovalRuangPage() {
 
     if (!waitingStatus) return [];
 
-    // ambil berdasarkan status waiting
     const q = query(collection(db, "room_bookings"), where("status", "==", waitingStatus));
     const snap = await getDocs(q);
 
@@ -89,15 +118,15 @@ function AdminApprovalRuangPage() {
     }));
 
     // ✅ filtering rules:
-    // - manager: wajib sesuai approval.manager.uid
-    // - operator/admin: tampil semua waiting list (simple, sesuai kebutuhanmu)
+    // - manager: hanya booking yg approval.manager.uid == dirinya
+    // - operator/admin: tampil semua waiting list
     let filtered = raw;
 
     if (level === "manager") {
       filtered = raw.filter((b) => b.approval?.manager?.uid === profile.uid);
     }
 
-    // ✅ enrich room snapshot (biar nama ruang muncul)
+    // ✅ enrich snapshot room
     const enriched = await Promise.all(
       filtered.map(async (b) => {
         const roomId = b.ruang?.roomId;
@@ -145,7 +174,7 @@ function AdminApprovalRuangPage() {
     run();
   }, [myProfile]);
 
-  // ===================== FILTER UI =====================
+  // ===================== FILTER =====================
   const filteredBookings = useMemo(() => {
     const key = keyword.toLowerCase();
 
@@ -159,7 +188,6 @@ function AdminApprovalRuangPage() {
       const peminjamDivisi = b.peminjam?.divisi || "";
 
       const text = `${roomName} ${kegiatan} ${jenis} ${peminjamNama} ${peminjamEmail} ${peminjamDivisi}`.toLowerCase();
-
       return text.includes(key);
     });
   }, [bookings, keyword]);
@@ -176,6 +204,26 @@ function AdminApprovalRuangPage() {
 
     try {
       const ref = doc(db, "room_bookings", booking.id);
+
+      // ✅ SAFETY: pastikan tahapnya benar
+      if (level === "operator" && booking.status !== "WAITING_OPERATOR") {
+        alert("Booking ini belum di-approve manager.");
+        return;
+      }
+
+      if (level === "admin" && booking.status !== "WAITING_ADMIN") {
+        alert("Booking ini belum di-approve operator.");
+        return;
+      }
+
+      // ✅ operator & admin cek bentrok jadwal sebelum approve lanjut
+      if (level === "operator" || level === "admin") {
+        const conflict = await hasScheduleConflict(booking);
+        if (conflict) {
+          alert("❌ Tidak bisa approve karena jadwal bentrok dengan booking yang sudah APPROVED.");
+          return;
+        }
+      }
 
       // MANAGER -> WAITING_OPERATOR
       if (level === "manager") {
@@ -209,7 +257,6 @@ function AdminApprovalRuangPage() {
 
       alert("✅ Berhasil Approve!");
 
-      // refresh
       const data = await fetchBookings(myProfile);
       setBookings(data);
     } catch (err) {
@@ -244,7 +291,6 @@ function AdminApprovalRuangPage() {
     try {
       const ref = doc(db, "room_bookings", selectedBooking.id);
 
-      // ✅ payload dasar untuk semua reject
       const baseReject = {
         status: "REJECTED",
         rejectedBy: level.toUpperCase(),
@@ -260,7 +306,7 @@ function AdminApprovalRuangPage() {
           "approval.manager.approvedAt": now,
           "approval.manager.note": rejectNote.trim(),
 
-          // ✅ cancel yang lain biar rapih
+          // rapihin yang lain
           "approval.operator.status": "CANCELLED",
           "approval.admin.status": "CANCELLED",
         });
@@ -274,7 +320,6 @@ function AdminApprovalRuangPage() {
           "approval.operator.approvedAt": now,
           "approval.operator.note": rejectNote.trim(),
 
-          // ✅ cancel admin
           "approval.admin.status": "CANCELLED",
         });
       }
@@ -294,7 +339,6 @@ function AdminApprovalRuangPage() {
       setOpenReject(false);
       setSelectedBooking(null);
 
-      // refresh list
       const data = await fetchBookings(myProfile);
       setBookings(data);
     } catch (err) {
