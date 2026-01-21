@@ -22,7 +22,7 @@ function AdminUserPage() {
 
   const [nipp, setNipp] = useState("");
   const [divisi, setDivisi] = useState("");
-  const [jabatan, setJabatan] = useState("Staff"); // ✅ NEW
+  const [jabatan, setJabatan] = useState("staff"); // ✅ NEW
 
   const [role, setRole] = useState("user");
   const [noTelp, setNoTelp] = useState("");
@@ -33,7 +33,7 @@ function AdminUserPage() {
     setPassword("");
     setNipp("");
     setDivisi("");
-    setJabatan("Staff"); // ✅ NEW
+    setJabatan("staff"); // ✅ NEW
     setRole("user");
     setNoTelp("");
     setSelectedId(null);
@@ -73,7 +73,7 @@ function AdminUserPage() {
     setEmail(u.email || "");
     setNipp(u.nipp || "");
     setDivisi(u.divisi || "");
-    setJabatan(u.jabatan || "Staff"); // ✅ NEW
+    setJabatan(u.jabatan || "staff"); // ✅ NEW
     setRole(u.role || "user");
     setNoTelp(u.noTelp || "");
 
@@ -221,7 +221,7 @@ function AdminUserPage() {
                       <td>{u.nipp || "-"}</td>
                       <td>{u.divisi || "-"}</td>
                       <td>
-                        <span className={`jabatan-badge ${u.jabatan === "Manager" ? "manager" : "staff"}`}>{u.jabatan || "-"}</span>
+                        <span className={`jabatan-badge ${u.jabatan === "manager" ? "manager" : "staff"}`}>{u.jabatan || "-"}</span>
                       </td>
                       <td>
                         <span className={`role-badge ${u.role || "user"}`}>{u.role || "user"}</span>
@@ -282,8 +282,8 @@ function AdminUserPage() {
                 <div className="form-group">
                   <label>Jabatan</label>
                   <select value={jabatan} onChange={(e) => setJabatan(e.target.value)}>
-                    <option value="Staff">Staff</option>
-                    <option value="Manager">Manager</option>
+                    <option value="staff">staff</option>
+                    <option value="manager">manager</option>
                   </select>
                 </div>
 

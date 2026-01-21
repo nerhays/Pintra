@@ -21,6 +21,9 @@ function RoomBookingForm() {
 
   const [role, setRole] = useState(null);
 
+  // ===== STATE USER PROFILE =====
+  const [userProfile, setUserProfile] = useState(null);
+
   // ===== STATE FORM =====
   const [namaKegiatan, setNamaKegiatan] = useState("");
   const [jenisRapat, setJenisRapat] = useState("OFFLINE");
@@ -28,15 +31,23 @@ function RoomBookingForm() {
   const [konsumsi, setKonsumsi] = useState(["TIDAK"]);
   const [dekorasi, setDekorasi] = useState("");
 
-  // ===== FETCH ROLE =====
+  // ===== FETCH ROLE + USER PROFILE =====
   useEffect(() => {
-    const fetchRole = async () => {
+    const fetchRoleAndProfile = async () => {
       if (!auth.currentUser) return;
+
       const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
+
       const snap = await getDocs(q);
-      if (!snap.empty) setRole(snap.docs[0].data().role);
+
+      if (!snap.empty) {
+        const data = snap.docs[0].data();
+        setRole(data.role);
+        setUserProfile({ id: snap.docs[0].id, ...data });
+      }
     };
-    fetchRole();
+
+    fetchRoleAndProfile();
   }, []);
 
   // ===== HANDLER KONSUMSI (MULTI CHECKBOX) =====
@@ -52,11 +63,30 @@ function RoomBookingForm() {
     setKonsumsi(updated);
   };
 
+  // ===== cari manager divisi peminjam =====
+  const findManagerDivisi = async (divisi) => {
+    if (!divisi) return null;
+
+    const q = query(collection(db, "users"), where("divisi", "==", divisi), where("jabatan", "==", "manager"));
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) return null;
+
+    const managerDoc = snap.docs[0];
+    return { uid: managerDoc.id, ...managerDoc.data() };
+  };
+
   // ===== SUBMIT =====
   const submitForm = async () => {
     try {
       if (!auth.currentUser) {
         alert("Harus login");
+        return;
+      }
+
+      if (!userProfile) {
+        alert("Profile user belum terbaca, coba reload");
         return;
       }
 
@@ -73,20 +103,66 @@ function RoomBookingForm() {
         return;
       }
 
+      if (end <= start) {
+        alert("Jam selesai harus lebih besar dari jam mulai");
+        return;
+      }
+
+      // ✅ cari manager
+      const manager = await findManagerDivisi(userProfile.divisi);
+
+      if (!manager) {
+        alert("Manager divisi tidak ditemukan. Pastikan ada user jabatan=manager pada divisi ini.");
+        return;
+      }
+
       await addDoc(collection(db, "room_bookings"), {
         namaKegiatan,
         jenisRapat,
-        ruang: { roomId },
+
+        ruang: {
+          roomId,
+        },
+
         waktuMulai: Timestamp.fromDate(start),
         waktuSelesai: Timestamp.fromDate(end),
+
         peminjam: {
           userId: auth.currentUser.uid,
           email: auth.currentUser.email,
+          nama: userProfile.nama || "-",
+          nipp: userProfile.nipp || "-",
+          divisi: userProfile.divisi || "-",
+          jabatan: userProfile.jabatan || "-",
         },
+
         peserta,
         konsumsi,
+
         dekorasi: dekorasi.trim() === "" ? "NO" : dekorasi,
-        status: "PENDING",
+
+        // ✅ APPROVAL FLOW
+        status: "WAITING_MANAGER",
+        approval: {
+          manager: {
+            uid: manager.uid,
+            nama: manager.nama || "-",
+            email: manager.email || "-",
+            approvedAt: null,
+            status: "PENDING",
+          },
+          operator: {
+            uid: null,
+            approvedAt: null,
+            status: "WAITING",
+          },
+          admin: {
+            uid: null,
+            approvedAt: null,
+            status: "WAITING",
+          },
+        },
+
         createdAt: Timestamp.now(),
       });
 
@@ -94,6 +170,7 @@ function RoomBookingForm() {
       navigate("/riwayat");
     } catch (err) {
       alert("Gagal submit: " + err.message);
+      console.error(err);
     }
   };
 
@@ -119,7 +196,9 @@ function RoomBookingForm() {
             <label>Nama Kegiatan</label>
             <input value={namaKegiatan} onChange={(e) => setNamaKegiatan(e.target.value)} />
           </div>
+
           <br />
+
           <div className="form-group">
             <label>Jenis Rapat</label>
             <select value={jenisRapat} onChange={(e) => setJenisRapat(e.target.value)}>
@@ -127,12 +206,16 @@ function RoomBookingForm() {
               <option value="HYBRID">Hybrid</option>
             </select>
           </div>
+
           <br />
+
           <div className="form-group">
             <label>Jumlah Peserta</label>
             <input type="number" value={peserta} onChange={(e) => setPeserta(e.target.value)} />
           </div>
+
           <br />
+
           <div className="form-group">
             <label>Add Konsumsi</label>
             <div className="checkbox-group">
@@ -144,7 +227,9 @@ function RoomBookingForm() {
               ))}
             </div>
           </div>
+
           <br />
+
           <div className="form-group full">
             <label>Request Dekorasi (Opsional)</label>
             <textarea placeholder="Kosongkan jika tidak ada" value={dekorasi} onChange={(e) => setDekorasi(e.target.value)} />

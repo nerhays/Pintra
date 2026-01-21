@@ -16,6 +16,7 @@ import AdminRoute from "./routes/AdminRoute";
 import AdminUserPage from "./pages/admin/master/AdminUserPage";
 import AdminRoomPage from "./pages/admin/master/AdminRoomPage";
 import AdminKendaraan from "./pages/admin/master/AdminKendaraanPage";
+import AdminApprovalRuangPage from "./pages/admin/approval/AdminApprovalRuangPage";
 
 import VehicleHistoryDetail from "./components/riwayat/VehicleHistoryDetail";
 import RoomHistoryDetail from "./components/riwayat/RoomHistoryDetail";
@@ -146,6 +147,14 @@ function App() {
             <AdminRoute>
               <AdminKendaraan />
             </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/approval/ruang"
+          element={
+            <AuthRoute>
+              <AdminApprovalRuangPage />
+            </AuthRoute>
           }
         />
       </Routes>
