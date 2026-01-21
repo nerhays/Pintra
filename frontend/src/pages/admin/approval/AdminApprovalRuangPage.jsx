@@ -19,61 +19,109 @@ function AdminApprovalRuangPage() {
 
   const [saving, setSaving] = useState(false);
 
+  // ===================== PROFILE =====================
   const fetchProfile = async () => {
     if (!auth.currentUser) return;
 
     const ref = doc(db, "users", auth.currentUser.uid);
     const snap = await getDoc(ref);
+
     if (snap.exists()) {
       setMyProfile({ uid: snap.id, ...snap.data() });
     }
   };
 
-  const getWaitingStatusByRole = (role) => {
-    if (role === "manager") return "WAITING_MANAGER";
-    if (role === "operator") return "WAITING_OPERATOR";
-    if (role === "admin") return "WAITING_ADMIN";
+  // ===================== STATUS BY APPROVER =====================
+  const getMyApprovalLevel = (profile) => {
+    const role = (profile?.role || "").toLowerCase();
+    const jabatan = (profile?.jabatan || "").toLowerCase();
+
+    // ✅ PRIORITAS ROLE
+    if (role === "admin") return "admin";
+    if (role === "operator") return "operator";
+
+    // ✅ baru jabatan untuk manager approval
+    if (jabatan === "manager") return "manager";
+
+    return "unknown";
+  };
+
+  const getWaitingStatus = (profile) => {
+    const level = getMyApprovalLevel(profile);
+
+    if (level === "manager") return "WAITING_MANAGER";
+    if (level === "operator") return "WAITING_OPERATOR";
+    if (level === "admin") return "WAITING_ADMIN";
+
     return null;
   };
 
-  const fetchBookings = async (role, uid) => {
-    const waitingStatus = getWaitingStatusByRole(role);
-    if (!waitingStatus) return [];
-
-    const q = query(collection(db, "room_bookings"), where("status", "==", waitingStatus));
-    const snap = await getDocs(q);
-
-    const data = snap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-    }));
-
-    // 🔥 filter sesuai approver
-    // manager hanya lihat yang approval.manager.uid = dirinya
-    // operator hanya lihat yang approval.operator.uid = dirinya
-    // admin hanya lihat yang approval.admin.uid = dirinya
-    const filtered = data.filter((b) => {
-      if (!b.approval) return false;
-      if (role === "manager") return b.approval.manager?.uid === uid;
-      if (role === "operator") return b.approval.operator?.uid === uid;
-      if (role === "admin") return b.approval.admin?.uid === uid;
-      return false;
-    });
-
-    return filtered;
-  };
-
-  const fetchRoomsForSnapshot = async (roomId) => {
+  // ===================== ROOM SNAPSHOT =====================
+  const fetchRoomSnapshot = async (roomId) => {
     try {
       const roomRef = doc(db, "rooms", roomId);
       const snap = await getDoc(roomRef);
       if (!snap.exists()) return null;
-      return { id: snap.id, ...snap.data() };
+
+      return {
+        id: snap.id,
+        ...snap.data(),
+      };
     } catch {
       return null;
     }
   };
 
+  // ===================== FETCH BOOKINGS =====================
+  const fetchBookings = async (profile) => {
+    const level = getMyApprovalLevel(profile);
+    const waitingStatus = getWaitingStatus(profile);
+
+    if (!waitingStatus) return [];
+
+    // ambil berdasarkan status waiting
+    const q = query(collection(db, "room_bookings"), where("status", "==", waitingStatus));
+    const snap = await getDocs(q);
+
+    const raw = snap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
+
+    // ✅ filtering rules:
+    // - manager: wajib sesuai approval.manager.uid
+    // - operator/admin: tampil semua waiting list (simple, sesuai kebutuhanmu)
+    let filtered = raw;
+
+    if (level === "manager") {
+      filtered = raw.filter((b) => b.approval?.manager?.uid === profile.uid);
+    }
+
+    // ✅ enrich room snapshot (biar nama ruang muncul)
+    const enriched = await Promise.all(
+      filtered.map(async (b) => {
+        const roomId = b.ruang?.roomId;
+        if (!roomId) return b;
+
+        const room = await fetchRoomSnapshot(roomId);
+        return {
+          ...b,
+          ruangSnapshot: room
+            ? {
+                namaRuang: room.namaRuang,
+                lokasi: room.lokasi,
+                kapasitas: room.kapasitas,
+                tipe: room.tipe,
+              }
+            : null,
+        };
+      }),
+    );
+
+    return enriched;
+  };
+
+  // ===================== INIT =====================
   useEffect(() => {
     const init = async () => {
       setLoading(true);
@@ -83,71 +131,54 @@ function AdminApprovalRuangPage() {
     init();
   }, []);
 
+  // ===================== LOAD LIST =====================
   useEffect(() => {
     const run = async () => {
-      if (!myProfile?.role || !myProfile?.uid) return;
+      if (!myProfile?.uid) return;
+
       setLoading(true);
-
-      const data = await fetchBookings(myProfile.role, myProfile.uid);
-
-      // ✅ optional: ambil nama ruangan biar UI cantik (karena booking hanya simpan roomId)
-      const enriched = await Promise.all(
-        data.map(async (b) => {
-          const roomId = b.ruang?.roomId;
-          if (!roomId) return b;
-
-          const roomData = await fetchRoomsForSnapshot(roomId);
-
-          return {
-            ...b,
-            ruangSnapshot: roomData
-              ? {
-                  namaRuang: roomData.namaRuang,
-                  lokasi: roomData.lokasi,
-                  kapasitas: roomData.kapasitas,
-                  tipe: roomData.tipe,
-                }
-              : null,
-          };
-        }),
-      );
-
-      setBookings(enriched);
+      const data = await fetchBookings(myProfile);
+      setBookings(data);
       setLoading(false);
     };
 
     run();
   }, [myProfile]);
 
-  // ============ FILTER ============
+  // ===================== FILTER UI =====================
   const filteredBookings = useMemo(() => {
     const key = keyword.toLowerCase();
 
     return bookings.filter((b) => {
       const roomName = b.ruangSnapshot?.namaRuang || "";
-      const peminjamNama = b.peminjam?.nama || "";
-      const peminjamDivisi = b.peminjam?.divisi || "";
       const kegiatan = b.namaKegiatan || "";
+      const jenis = b.jenisRapat || "";
 
-      const text = `${roomName} ${peminjamNama} ${peminjamDivisi} ${kegiatan} ${b.jenisRapat || ""}`.toLowerCase();
+      const peminjamNama = b.peminjam?.nama || "";
+      const peminjamEmail = b.peminjam?.email || "";
+      const peminjamDivisi = b.peminjam?.divisi || "";
+
+      const text = `${roomName} ${kegiatan} ${jenis} ${peminjamNama} ${peminjamEmail} ${peminjamDivisi}`.toLowerCase();
+
       return text.includes(key);
     });
   }, [bookings, keyword]);
 
-  // ============ APPROVE ============
+  // ===================== APPROVE =====================
   const handleApprove = async (booking) => {
     if (saving) return;
     if (!myProfile) return;
+
+    const level = getMyApprovalLevel(myProfile);
+    const now = Timestamp.now();
 
     setSaving(true);
 
     try {
       const ref = doc(db, "room_bookings", booking.id);
 
-      const now = Timestamp.now();
-
-      // manager approve → naik jadi WAITING_OPERATOR
-      if (myProfile.role === "manager") {
+      // MANAGER -> WAITING_OPERATOR
+      if (level === "manager") {
         await updateDoc(ref, {
           "approval.manager.status": "APPROVED",
           "approval.manager.approvedAt": now,
@@ -156,8 +187,8 @@ function AdminApprovalRuangPage() {
         });
       }
 
-      // operator approve → naik jadi WAITING_ADMIN
-      if (myProfile.role === "operator") {
+      // OPERATOR -> WAITING_ADMIN
+      if (level === "operator") {
         await updateDoc(ref, {
           "approval.operator.status": "APPROVED",
           "approval.operator.approvedAt": now,
@@ -166,8 +197,8 @@ function AdminApprovalRuangPage() {
         });
       }
 
-      // admin approve → FINAL APPROVED
-      if (myProfile.role === "admin") {
+      // ADMIN -> FINAL APPROVED
+      if (level === "admin") {
         await updateDoc(ref, {
           "approval.admin.status": "APPROVED",
           "approval.admin.approvedAt": now,
@@ -177,8 +208,9 @@ function AdminApprovalRuangPage() {
       }
 
       alert("✅ Berhasil Approve!");
-      // refresh list
-      const data = await fetchBookings(myProfile.role, myProfile.uid);
+
+      // refresh
+      const data = await fetchBookings(myProfile);
       setBookings(data);
     } catch (err) {
       alert("❌ Gagal approve: " + err.message);
@@ -188,7 +220,7 @@ function AdminApprovalRuangPage() {
     }
   };
 
-  // ============ REJECT ============
+  // ===================== REJECT =====================
   const openRejectModal = (booking) => {
     setSelectedBooking(booking);
     setRejectNote("");
@@ -203,54 +235,67 @@ function AdminApprovalRuangPage() {
     }
 
     if (saving) return;
+
+    const level = getMyApprovalLevel(myProfile);
+    const now = Timestamp.now();
+
     setSaving(true);
 
     try {
       const ref = doc(db, "room_bookings", selectedBooking.id);
-      const now = Timestamp.now();
 
-      if (myProfile.role === "manager") {
+      // ✅ payload dasar untuk semua reject
+      const baseReject = {
+        status: "REJECTED",
+        rejectedBy: level.toUpperCase(),
+        rejectedNote: rejectNote.trim(),
+        updatedAt: now,
+      };
+
+      if (level === "manager") {
         await updateDoc(ref, {
+          ...baseReject,
+
           "approval.manager.status": "REJECTED",
           "approval.manager.approvedAt": now,
           "approval.manager.note": rejectNote.trim(),
-          status: "REJECTED",
-          rejectedBy: "MANAGER",
-          rejectedNote: rejectNote.trim(),
-          updatedAt: now,
+
+          // ✅ cancel yang lain biar rapih
+          "approval.operator.status": "CANCELLED",
+          "approval.admin.status": "CANCELLED",
         });
       }
 
-      if (myProfile.role === "operator") {
+      if (level === "operator") {
         await updateDoc(ref, {
+          ...baseReject,
+
           "approval.operator.status": "REJECTED",
           "approval.operator.approvedAt": now,
           "approval.operator.note": rejectNote.trim(),
-          status: "REJECTED",
-          rejectedBy: "OPERATOR",
-          rejectedNote: rejectNote.trim(),
-          updatedAt: now,
+
+          // ✅ cancel admin
+          "approval.admin.status": "CANCELLED",
         });
       }
 
-      if (myProfile.role === "admin") {
+      if (level === "admin") {
         await updateDoc(ref, {
+          ...baseReject,
+
           "approval.admin.status": "REJECTED",
           "approval.admin.approvedAt": now,
           "approval.admin.note": rejectNote.trim(),
-          status: "REJECTED",
-          rejectedBy: "ADMIN",
-          rejectedNote: rejectNote.trim(),
-          updatedAt: now,
         });
       }
 
       alert("❌ Pengajuan ditolak.");
+
       setOpenReject(false);
       setSelectedBooking(null);
 
       // refresh list
-      const data = await fetchBookings(myProfile.role, myProfile.uid);
+      const data = await fetchBookings(myProfile);
       setBookings(data);
     } catch (err) {
       alert("❌ Gagal reject: " + err.message);
@@ -260,6 +305,7 @@ function AdminApprovalRuangPage() {
     }
   };
 
+  // ===================== FORMAT =====================
   const formatTime = (ts) => {
     try {
       return ts?.toDate().toLocaleString();
@@ -268,6 +314,7 @@ function AdminApprovalRuangPage() {
     }
   };
 
+  // ===================== UI =====================
   if (loading) {
     return (
       <AdminLayout>
@@ -290,6 +337,8 @@ function AdminApprovalRuangPage() {
     );
   }
 
+  const level = getMyApprovalLevel(myProfile);
+
   return (
     <AdminLayout>
       <div className="approval-page">
@@ -298,7 +347,7 @@ function AdminApprovalRuangPage() {
           <div>
             <h2>Approval Ruang</h2>
             <p className="sub">
-              Role: <b>{myProfile.role}</b> • Menampilkan pengajuan yang menunggu approval kamu
+              Level: <b>{level}</b> • Menampilkan pengajuan yang menunggu approval kamu
             </p>
           </div>
 
@@ -327,7 +376,7 @@ function AdminApprovalRuangPage() {
 
                 <div className="booking-info">
                   <div className="info-item">
-                    <span className="label">Tanggal</span>
+                    <span className="label">Mulai</span>
                     <span className="value">{formatTime(b.waktuMulai)}</span>
                   </div>
 

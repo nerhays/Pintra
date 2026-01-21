@@ -110,14 +110,24 @@ function ManagerApprovalRoomPage() {
 
     try {
       const ref = doc(db, "room_bookings", bookingId);
+      const now = Timestamp.now();
 
       await updateDoc(ref, {
         status: "REJECTED",
-        rejectedReason: alasan,
-        rejectedAt: Timestamp.now(),
+
+        // ✅ samakan dengan sistem utama
+        rejectedBy: "MANAGER",
+        rejectedNote: alasan,
+        updatedAt: now,
+
+        // ✅ approval manager
         "approval.manager.status": "REJECTED",
-        "approval.manager.approvedAt": Timestamp.now(),
-        "approval.manager.approvedBy": auth.currentUser.email,
+        "approval.manager.approvedAt": now,
+        "approval.manager.note": alasan,
+
+        // ✅ cancel level lain
+        "approval.operator.status": "CANCELLED",
+        "approval.admin.status": "CANCELLED",
       });
 
       alert("❌ Ditolak.");

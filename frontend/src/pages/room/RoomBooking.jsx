@@ -61,7 +61,7 @@ function RoomBooking() {
         snapRooms.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }))
+        })),
       );
     };
 
@@ -82,6 +82,10 @@ function RoomBooking() {
 
     snap.docs.forEach((doc) => {
       const data = doc.data();
+
+      const blockedStatuses = ["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVED"];
+      if (!blockedStatuses.includes(data.status)) return;
+
       const start = data.waktuMulai.toDate();
       const end = data.waktuSelesai.toDate();
 
