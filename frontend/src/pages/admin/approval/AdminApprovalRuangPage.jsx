@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, getDoc, getDocs, query, updateDoc, where, Timestamp } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, updateDoc, where, Timestamp, runTransaction } from "firebase/firestore";
 import { auth, db } from "../../../firebase";
 
 import AdminLayout from "../../../components/admin/AdminLayout";
@@ -203,64 +203,143 @@ function AdminApprovalRuangPage() {
     setSaving(true);
 
     try {
-      const ref = doc(db, "room_bookings", booking.id);
+      const bookingRef = doc(db, "room_bookings", booking.id);
 
-      // ✅ SAFETY: pastikan tahapnya benar
-      if (level === "operator" && booking.status !== "WAITING_OPERATOR") {
-        alert("Booking ini belum di-approve manager.");
-        return;
-      }
+      await runTransaction(db, async (tx) => {
+        // 1) ambil booking terbaru
+        const bookingSnap = await tx.get(bookingRef);
+        if (!bookingSnap.exists()) throw new Error("Booking tidak ditemukan");
 
-      if (level === "admin" && booking.status !== "WAITING_ADMIN") {
-        alert("Booking ini belum di-approve operator.");
-        return;
-      }
+        const b = { id: bookingSnap.id, ...bookingSnap.data() };
 
-      // ✅ operator & admin cek bentrok jadwal sebelum approve lanjut
-      if (level === "operator" || level === "admin") {
-        const conflict = await hasScheduleConflict(booking);
-        if (conflict) {
-          alert("❌ Tidak bisa approve karena jadwal bentrok dengan booking yang sudah APPROVED.");
+        // ✅ validasi status sesuai tahap
+        if (level === "manager" && b.status !== "WAITING_MANAGER") {
+          throw new Error("Booking ini sudah diproses / bukan waiting manager.");
+        }
+        if (level === "operator" && b.status !== "WAITING_OPERATOR") {
+          throw new Error("Booking ini belum di-approve manager.");
+        }
+        if (level === "admin" && b.status !== "WAITING_ADMIN") {
+          throw new Error("Booking ini belum di-approve operator.");
+        }
+
+        const roomId = b?.ruang?.roomId;
+        if (!roomId) throw new Error("RoomId tidak valid");
+
+        const start = b.waktuMulai?.toDate?.();
+        const end = b.waktuSelesai?.toDate?.();
+        if (!start || !end) throw new Error("Waktu booking tidak valid");
+
+        const isOverlap = (aStart, aEnd, bStart, bEnd) => aStart < bEnd && bStart < aEnd;
+
+        // ============================
+        // ✅ KETAT + AUTO REJECT DI OPERATOR
+        // ============================
+        if (level === "operator") {
+          // Cari booking lain yang masih "bisa bentrok"
+          // kita ambil yang statusnya masih aktif dalam proses:
+          // WAITING_OPERATOR, WAITING_ADMIN, APPROVED
+          const qAll = query(collection(db, "room_bookings"), where("ruang.roomId", "==", roomId));
+
+          const snapAll = await getDocs(qAll);
+
+          // 1) cek dulu apakah booking ini bentrok dengan yang sudah lock (WAITING_ADMIN / APPROVED)
+          const lockedStatuses = new Set(["WAITING_ADMIN", "APPROVED"]);
+
+          for (const docSnap of snapAll.docs) {
+            if (docSnap.id === b.id) continue;
+
+            const other = docSnap.data();
+            if (!lockedStatuses.has(other.status)) continue;
+
+            const oStart = other.waktuMulai?.toDate?.();
+            const oEnd = other.waktuSelesai?.toDate?.();
+            if (!oStart || !oEnd) continue;
+
+            if (isOverlap(start, end, oStart, oEnd)) {
+              throw new Error("Bentrok jadwal! Sudah ada booking lain yang lolos operator / sudah approved.");
+            }
+          }
+
+          // 2) Jika aman, APPROVE booking ini → jadi WAITING_ADMIN
+          tx.update(bookingRef, {
+            "approval.operator.status": "APPROVED",
+            "approval.operator.approvedAt": now,
+            status: "WAITING_ADMIN",
+            updatedAt: now,
+          });
+
+          // 3) AUTO REJECT semua booking lain yang bentrok dan masih waiting
+          for (const docSnap of snapAll.docs) {
+            if (docSnap.id === b.id) continue;
+
+            const other = docSnap.data();
+
+            // yang boleh di auto reject = yang masih menunggu (belum lock)
+            // biasanya WAITING_OPERATOR (karena tahap operator)
+            if (other.status !== "WAITING_OPERATOR") continue;
+
+            const oStart = other.waktuMulai?.toDate?.();
+            const oEnd = other.waktuSelesai?.toDate?.();
+            if (!oStart || !oEnd) continue;
+
+            if (isOverlap(start, end, oStart, oEnd)) {
+              const otherRef = doc(db, "room_bookings", docSnap.id);
+
+              tx.update(otherRef, {
+                status: "REJECTED",
+                rejectedBy: "SYSTEM_OPERATOR_LOCK",
+                rejectedNote: "Auto reject: jadwal bentrok karena booking lain sudah di-approve operator.",
+                updatedAt: now,
+
+                // isi approval operator agar terlihat jelas kenapa ditolak
+                "approval.operator.status": "REJECTED",
+                "approval.operator.approvedAt": now,
+                "approval.operator.note": "Auto reject karena bentrok jadwal setelah operator approve booking lain.",
+
+                // admin tidak perlu proses lagi
+                "approval.admin.status": "CANCELLED",
+              });
+            }
+          }
+
+          // ✅ selesai operator flow (return biar tidak lanjut ke bawah)
           return;
         }
-      }
 
-      // MANAGER -> WAITING_OPERATOR
-      if (level === "manager") {
-        await updateDoc(ref, {
-          "approval.manager.status": "APPROVED",
-          "approval.manager.approvedAt": now,
-          status: "WAITING_OPERATOR",
-          updatedAt: now,
-        });
-      }
+        // ============================
+        // ✅ MANAGER APPROVE
+        // ============================
+        if (level === "manager") {
+          tx.update(bookingRef, {
+            "approval.manager.status": "APPROVED",
+            "approval.manager.approvedAt": now,
+            status: "WAITING_OPERATOR",
+            updatedAt: now,
+          });
+          return;
+        }
 
-      // OPERATOR -> WAITING_ADMIN
-      if (level === "operator") {
-        await updateDoc(ref, {
-          "approval.operator.status": "APPROVED",
-          "approval.operator.approvedAt": now,
-          status: "WAITING_ADMIN",
-          updatedAt: now,
-        });
-      }
-
-      // ADMIN -> FINAL APPROVED
-      if (level === "admin") {
-        await updateDoc(ref, {
-          "approval.admin.status": "APPROVED",
-          "approval.admin.approvedAt": now,
-          status: "APPROVED",
-          updatedAt: now,
-        });
-      }
+        // ============================
+        // ✅ ADMIN FINAL APPROVE
+        // ============================
+        if (level === "admin") {
+          tx.update(bookingRef, {
+            "approval.admin.status": "APPROVED",
+            "approval.admin.approvedAt": now,
+            status: "APPROVED",
+            updatedAt: now,
+          });
+          return;
+        }
+      });
 
       alert("✅ Berhasil Approve!");
 
       const data = await fetchBookings(myProfile);
       setBookings(data);
     } catch (err) {
-      alert("❌ Gagal approve: " + err.message);
+      alert("❌ " + err.message);
       console.error(err);
     } finally {
       setSaving(false);
