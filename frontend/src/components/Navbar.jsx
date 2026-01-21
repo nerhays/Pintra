@@ -1,20 +1,52 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+
 import logoPelindo from "../assets/logo.png";
 import profileIcon from "../assets/profile.png";
 import "./Navbar.css";
 
-function Navbar({ role }) {
+function Navbar({ role: roleProp }) {
   const navigate = useNavigate();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // ✅ ambil role & jabatan dari Firestore (biar manager bisa kebaca)
+  const [role, setRole] = useState(roleProp || null);
+  const [jabatan, setJabatan] = useState(null);
+
+  useEffect(() => {
+    const fetchRoleAndJabatan = async () => {
+      try {
+        if (!auth.currentUser) return;
+
+        const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
+        const snap = await getDocs(q);
+
+        if (!snap.empty) {
+          const userData = snap.docs[0].data();
+          setRole(userData.role || roleProp || "user");
+          setJabatan((userData.jabatan || "").toLowerCase());
+        }
+      } catch (err) {
+        console.error("❌ Navbar fetch role/jabatan error:", err);
+      }
+    };
+
+    fetchRoleAndJabatan();
+  }, [roleProp]);
 
   const logout = async () => {
     await signOut(auth);
     navigate("/");
   };
+
+  // ✅ helper permission
+  const isAdminPanel = role === "admin" || role === "operator";
+  const isManager = jabatan === "manager";
 
   return (
     <nav className="navbar">
@@ -25,9 +57,13 @@ function Navbar({ role }) {
 
       {/* RIGHT DESKTOP */}
       <div className="navbar-right desktop">
-        {(role === "admin" || role === "operator") && <span onClick={() => navigate("/admin")}>Dashboard Admin</span>}
+        {/* ✅ ADMIN / OPERATOR */}
+        {isAdminPanel && <span onClick={() => navigate("/admin")}>Dashboard Admin</span>}
 
-        {/* ➕ MENU RIWAYAT di samping Dashboard */}
+        {/* ✅ MANAGER APPROVAL */}
+        {isManager && <span onClick={() => navigate("/approval/manager/ruang")}>Approval Saya</span>}
+
+        {/* RIWAYAT */}
         <span onClick={() => navigate("/riwayat")}>Riwayat</span>
 
         {/* PROFILE */}
@@ -55,7 +91,10 @@ function Navbar({ role }) {
       {/* MOBILE MENU */}
       {menuOpen && (
         <div className="mobile-menu">
-          {(role === "admin" || role === "operator") && <div onClick={() => navigate("/admin")}>Dashboard Admin</div>}
+          {isAdminPanel && <div onClick={() => navigate("/admin")}>Dashboard Admin</div>}
+
+          {isManager && <div onClick={() => navigate("/approval/manager/ruang")}>Approval Saya</div>}
+
           <div onClick={() => navigate("/riwayat")}>Riwayat</div>
           <div onClick={() => navigate("/profile")}>Profile</div>
           <div onClick={logout}>Logout</div>

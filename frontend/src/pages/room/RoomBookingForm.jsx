@@ -14,14 +14,14 @@ function RoomBookingForm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // 🔒 DATA TERKUNCI DARI DETAIL
+  // 🔒 data terkunci
   const tanggal = searchParams.get("date");
   const jamMulai = searchParams.get("start");
   const jamSelesai = searchParams.get("end");
 
-  const [role, setRole] = useState(null);
+  const [roleNavbar, setRoleNavbar] = useState(null);
 
-  // ===== STATE USER PROFILE =====
+  // ✅ data peminjam dari users collection
   const [userProfile, setUserProfile] = useState(null);
 
   // ===== STATE FORM =====
@@ -31,9 +31,11 @@ function RoomBookingForm() {
   const [konsumsi, setKonsumsi] = useState(["TIDAK"]);
   const [dekorasi, setDekorasi] = useState("");
 
-  // ===== FETCH ROLE + USER PROFILE =====
+  const [saving, setSaving] = useState(false);
+
+  // ===== FETCH USER PROFILE =====
   useEffect(() => {
-    const fetchRoleAndProfile = async () => {
+    const fetchUserProfile = async () => {
       if (!auth.currentUser) return;
 
       const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
@@ -42,15 +44,17 @@ function RoomBookingForm() {
 
       if (!snap.empty) {
         const data = snap.docs[0].data();
-        setRole(data.role);
-        setUserProfile({ id: snap.docs[0].id, ...data });
+        setUserProfile(data);
+
+        // navbar role
+        setRoleNavbar(data.role);
       }
     };
 
-    fetchRoleAndProfile();
+    fetchUserProfile();
   }, []);
 
-  // ===== HANDLER KONSUMSI (MULTI CHECKBOX) =====
+  // ===== HANDLER KONSUMSI =====
   const toggleKonsumsi = (value) => {
     if (value === "TIDAK") {
       setKonsumsi(["TIDAK"]);
@@ -63,22 +67,28 @@ function RoomBookingForm() {
     setKonsumsi(updated);
   };
 
-  // ===== cari manager divisi peminjam =====
+  // ✅ cari manager divisi
   const findManagerDivisi = async (divisi) => {
     if (!divisi) return null;
 
-    const q = query(collection(db, "users"), where("divisi", "==", divisi), where("jabatan", "==", "manager"));
+    const qManager = query(collection(db, "users"), where("divisi", "==", divisi), where("jabatan", "==", "manager"));
 
-    const snap = await getDocs(q);
+    const managerSnap = await getDocs(qManager);
 
-    if (snap.empty) return null;
+    if (managerSnap.empty) return null;
 
-    const managerDoc = snap.docs[0];
-    return { uid: managerDoc.id, ...managerDoc.data() };
+    const managerDoc = managerSnap.docs[0];
+
+    return {
+      uid: managerDoc.id,
+      ...managerDoc.data(),
+    };
   };
 
   // ===== SUBMIT =====
   const submitForm = async () => {
+    if (saving) return;
+
     try {
       if (!auth.currentUser) {
         alert("Harus login");
@@ -86,7 +96,7 @@ function RoomBookingForm() {
       }
 
       if (!userProfile) {
-        alert("Profile user belum terbaca, coba reload");
+        alert("User profile belum terbaca");
         return;
       }
 
@@ -95,34 +105,69 @@ function RoomBookingForm() {
         return;
       }
 
-      const start = new Date(`${tanggal}T${jamMulai}`);
-      const end = new Date(`${tanggal}T${jamSelesai}`);
-
       if (!namaKegiatan || !peserta) {
         alert("Nama kegiatan dan jumlah peserta wajib diisi");
         return;
       }
 
-      if (end <= start) {
-        alert("Jam selesai harus lebih besar dari jam mulai");
-        return;
+      const start = new Date(`${tanggal}T${jamMulai}`);
+      const end = new Date(`${tanggal}T${jamSelesai}`);
+
+      setSaving(true);
+
+      // ✅ cek apakah peminjam admin
+      const isAdminBorrower = userProfile.role === "admin";
+
+      // ✅ cari manager (kalau bukan admin)
+      let manager = null;
+      if (!isAdminBorrower) {
+        manager = await findManagerDivisi(userProfile.divisi);
+
+        if (!manager) {
+          alert("Manager divisi tidak ditemukan. Pastikan ada user jabatan=manager pada divisi ini.");
+          setSaving(false);
+          return;
+        }
       }
 
-      // ✅ cari manager
-      const manager = await findManagerDivisi(userProfile.divisi);
+      // ✅ status awal
+      const initialStatus = isAdminBorrower ? "APPROVED" : "WAITING_MANAGER";
 
-      if (!manager) {
-        alert("Manager divisi tidak ditemukan. Pastikan ada user jabatan=manager pada divisi ini.");
-        return;
-      }
+      // ✅ approval object
+      const approval = {
+        manager: isAdminBorrower
+          ? { uid: "-", nama: "-", email: "-", status: "AUTO_APPROVED" }
+          : {
+              uid: manager.uid,
+              nama: manager.nama || "-",
+              email: manager.email || "-",
+              status: "PENDING",
+              approvedAt: null,
+            },
 
+        operator: {
+          uid: "-",
+          nama: "-",
+          email: "-",
+          status: isAdminBorrower ? "AUTO_APPROVED" : "WAITING",
+          approvedAt: null,
+        },
+
+        admin: {
+          uid: "-",
+          nama: "-",
+          email: "-",
+          status: isAdminBorrower ? "AUTO_APPROVED" : "WAITING",
+          approvedAt: null,
+        },
+      };
+
+      // ✅ simpan booking
       await addDoc(collection(db, "room_bookings"), {
         namaKegiatan,
         jenisRapat,
 
-        ruang: {
-          roomId,
-        },
+        ruang: { roomId },
 
         waktuMulai: Timestamp.fromDate(start),
         waktuSelesai: Timestamp.fromDate(end),
@@ -130,53 +175,39 @@ function RoomBookingForm() {
         peminjam: {
           userId: auth.currentUser.uid,
           email: auth.currentUser.email,
+
+          // ✅ snapshot user
           nama: userProfile.nama || "-",
           nipp: userProfile.nipp || "-",
           divisi: userProfile.divisi || "-",
           jabatan: userProfile.jabatan || "-",
+          role: userProfile.role || "user",
         },
 
         peserta,
         konsumsi,
-
         dekorasi: dekorasi.trim() === "" ? "NO" : dekorasi,
 
-        // ✅ APPROVAL FLOW
-        status: "WAITING_MANAGER",
-        approval: {
-          manager: {
-            uid: manager.uid,
-            nama: manager.nama || "-",
-            email: manager.email || "-",
-            approvedAt: null,
-            status: "PENDING",
-          },
-          operator: {
-            uid: null,
-            approvedAt: null,
-            status: "WAITING",
-          },
-          admin: {
-            uid: null,
-            approvedAt: null,
-            status: "WAITING",
-          },
-        },
+        approval,
+        status: initialStatus,
 
         createdAt: Timestamp.now(),
       });
 
-      alert("Peminjaman ruang berhasil diajukan ✅");
+      alert(isAdminBorrower ? "Booking berhasil ✅ (Auto Approved karena akun admin)" : "Booking berhasil diajukan ✅ Menunggu approval manager");
+
       navigate("/riwayat");
     } catch (err) {
       alert("Gagal submit: " + err.message);
       console.error(err);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
     <>
-      <Navbar role={role} />
+      <Navbar role={roleNavbar} />
 
       <div className="form-page">
         <h2 className="form-title">Formulir Peminjaman Ruang</h2>
@@ -236,8 +267,8 @@ function RoomBookingForm() {
           </div>
 
           <div className="form-action">
-            <button className="btn-submit" onClick={submitForm}>
-              PINJAM
+            <button className="btn-submit" onClick={submitForm} disabled={saving}>
+              {saving ? "Menyimpan..." : "PINJAM"}
             </button>
           </div>
         </div>
