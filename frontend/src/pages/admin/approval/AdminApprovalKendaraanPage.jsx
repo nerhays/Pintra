@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, getDoc, getDocs, query, updateDoc, where, Timestamp } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, updateDoc, where, Timestamp, runTransaction } from "firebase/firestore";
 import { auth, db } from "../../../firebase";
 
 import AdminLayout from "../../../components/admin/AdminLayout";
@@ -46,9 +46,9 @@ function AdminApprovalKendaraanPage() {
   };
 
   const getWaitingStatusForLevel = (level) => {
-    if (level === "manager") return "APPROVAL_1"; // menunggu manager
-    if (level === "operator") return "APPROVAL_2"; // menunggu operator
-    if (level === "admin") return "APPROVAL_3"; // menunggu admin
+    if (level === "manager") return "APPROVAL_1";
+    if (level === "operator") return "APPROVAL_2";
+    if (level === "admin") return "APPROVAL_3";
     return null;
   };
 
@@ -58,8 +58,7 @@ function AdminApprovalKendaraanPage() {
     const statusNeed = getWaitingStatusForLevel(level);
     if (!statusNeed) return [];
 
-    // ambil booking yg statusnya sesuai level
-    let qSnap = query(collection(db, "vehicle_bookings"), where("status", "==", statusNeed));
+    const qSnap = query(collection(db, "vehicle_bookings"), where("status", "==", statusNeed));
     const snap = await getDocs(qSnap);
 
     const raw = snap.docs.map((d) => ({
@@ -73,7 +72,6 @@ function AdminApprovalKendaraanPage() {
       return raw.filter((b) => (b.divisi || "").toLowerCase() === myDivisi);
     }
 
-    // operator/admin bisa lihat semua (karena SDM)
     return raw;
   };
 
@@ -117,7 +115,12 @@ function AdminApprovalKendaraanPage() {
     });
   }, [bookings, keyword]);
 
-  // ===================== APPROVE =====================
+  // ===================== HELPERS =====================
+  const isOverlap = (startA, endA, startB, endB) => {
+    return startA < endB && endA > startB;
+  };
+
+  // ===================== APPROVE (WITH AUTO REJECT BENTROK AT OPERATOR) =====================
   const handleApprove = async (booking) => {
     if (saving) return;
     if (!myProfile) return;
@@ -128,18 +131,14 @@ function AdminApprovalKendaraanPage() {
     setSaving(true);
 
     try {
-      const ref = doc(db, "vehicle_bookings", booking.id);
+      const bookingRef = doc(db, "vehicle_bookings", booking.id);
 
+      // ✅ status transition
       const oldStatus = booking.status;
       let newStatus = booking.status;
 
-      // ✅ manager approve: APPROVAL_1 -> APPROVAL_2
       if (level === "manager") newStatus = "APPROVAL_2";
-
-      // ✅ operator approve: APPROVAL_2 -> APPROVAL_3
       if (level === "operator") newStatus = "APPROVAL_3";
-
-      // ✅ admin approve: APPROVAL_3 -> APPROVED
       if (level === "admin") newStatus = "APPROVED";
 
       if (newStatus === oldStatus) {
@@ -147,29 +146,119 @@ function AdminApprovalKendaraanPage() {
         return;
       }
 
-      await updateDoc(ref, {
-        status: newStatus,
-        updatedAt: now,
+      // ==========================================================
+      // 🔥 KHUSUS OPERATOR: approve 1, auto reject yang bentrok
+      // ==========================================================
+      if (level === "operator") {
+        await runTransaction(db, async (tx) => {
+          const snap = await tx.get(bookingRef);
+          if (!snap.exists()) throw new Error("Booking tidak ditemukan");
 
-        lastApprovalBy: myProfile.nama || myProfile.email || "-",
-        lastApprovalRole: myProfile.role || "-",
-        lastApprovalJabatan: myProfile.jabatan || "-",
-      });
+          const fresh = { id: snap.id, ...snap.data() };
 
-      // ✅ simpan ke history
-      await addVehicleHistory(booking.id, {
-        action: "APPROVED",
-        actionBy: myProfile.nama || myProfile.email || "-",
-        actionRole: myProfile.role || "-",
-        actionJabatan: myProfile.jabatan || "-",
-        userId: myProfile.uid,
-        oldStatus,
-        newStatus,
-        note: `Disetujui oleh ${level}`,
-        timestamp: now,
-      });
+          // ✅ pastikan status masih APPROVAL_2
+          if (fresh.status !== "APPROVAL_2") {
+            throw new Error("Booking ini sudah berubah status (refresh halaman).");
+          }
 
-      alert("✅ Berhasil approve!");
+          const vehicleId = fresh.vehicle?.vehicleId;
+          const start = fresh.waktuPinjam?.toDate?.();
+          const end = fresh.waktuKembali?.toDate?.();
+
+          if (!vehicleId || !start || !end) {
+            throw new Error("Data waktu/vehicleId tidak lengkap");
+          }
+
+          // ✅ ambil kandidat booking lain yg berpotensi bentrok
+          // kita ambil status "aktif" selain REJECTED/COMPLETED
+          const qAll = query(collection(db, "vehicle_bookings"), where("vehicle.vehicleId", "==", vehicleId));
+          const allSnap = await getDocs(qAll);
+
+          const willReject = [];
+
+          allSnap.docs.forEach((d) => {
+            if (d.id === fresh.id) return;
+
+            const b = d.data();
+            const st = b.status;
+
+            // hanya yang masih bisa bentrok / masih hidup
+            const BLOCKING = ["APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "APPROVED", "ON_GOING", "SUBMITTED"];
+            if (!BLOCKING.includes(st)) return;
+
+            const bStart = b.waktuPinjam?.toDate?.();
+            const bEnd = b.waktuKembali?.toDate?.();
+
+            if (!bStart || !bEnd) return;
+
+            if (isOverlap(start, end, bStart, bEnd)) {
+              willReject.push({ id: d.id, ...b });
+            }
+          });
+
+          // ✅ 1) approve booking terpilih
+          tx.update(bookingRef, {
+            status: "APPROVAL_3",
+            updatedAt: now,
+            lastApprovalBy: myProfile.nama || myProfile.email || "-",
+            lastApprovalRole: myProfile.role || "-",
+            lastApprovalJabatan: myProfile.jabatan || "-",
+          });
+
+          // ✅ 2) auto reject semua yang bentrok
+          willReject.forEach((b) => {
+            const refB = doc(db, "vehicle_bookings", b.id);
+            tx.update(refB, {
+              status: "REJECTED",
+              alasan: "Booking ditolak otomatis karena bentrok jadwal dengan booking lain yang disetujui Operator.",
+              rejectedBy: "OPERATOR",
+              rejectedNote: "AUTO_REJECT_BENTROK",
+              updatedAt: now,
+              lastApprovalBy: myProfile.nama || myProfile.email || "-",
+              lastApprovalRole: myProfile.role || "-",
+              lastApprovalJabatan: myProfile.jabatan || "-",
+            });
+          });
+        });
+
+        // ✅ history untuk booking yang di-approve
+        await addVehicleHistory(booking.id, {
+          action: "APPROVED",
+          actionBy: myProfile.nama || myProfile.email || "-",
+          actionRole: myProfile.role || "-",
+          actionJabatan: myProfile.jabatan || "-",
+          userId: myProfile.uid,
+          oldStatus,
+          newStatus: "APPROVAL_3",
+          note: "Disetujui oleh operator + auto reject booking bentrok",
+          timestamp: now,
+        });
+
+        alert("✅ Approve berhasil! Booking bentrok otomatis ditolak.");
+      } else {
+        // ===================== NORMAL APPROVE (MANAGER / ADMIN) =====================
+        await updateDoc(bookingRef, {
+          status: newStatus,
+          updatedAt: now,
+          lastApprovalBy: myProfile.nama || myProfile.email || "-",
+          lastApprovalRole: myProfile.role || "-",
+          lastApprovalJabatan: myProfile.jabatan || "-",
+        });
+
+        await addVehicleHistory(booking.id, {
+          action: "APPROVED",
+          actionBy: myProfile.nama || myProfile.email || "-",
+          actionRole: myProfile.role || "-",
+          actionJabatan: myProfile.jabatan || "-",
+          userId: myProfile.uid,
+          oldStatus,
+          newStatus,
+          note: `Disetujui oleh ${level}`,
+          timestamp: now,
+        });
+
+        alert("✅ Berhasil approve!");
+      }
 
       // refresh list
       const data = await fetchBookings(myProfile);
@@ -213,6 +302,9 @@ function AdminApprovalKendaraanPage() {
         status: newStatus,
         alasan: rejectNote.trim(),
         updatedAt: now,
+
+        rejectedBy: level.toUpperCase(),
+        rejectedNote: rejectNote.trim(),
 
         lastApprovalBy: myProfile.nama || myProfile.email || "-",
         lastApprovalRole: myProfile.role || "-",
