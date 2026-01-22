@@ -20,6 +20,7 @@ import AdminApprovalRuangPage from "./pages/admin/approval/AdminApprovalRuangPag
 import ManagerApprovalRoomPage from "./pages/manager/ManagerApprovalRoomPage";
 import VehicleHistoryDetail from "./components/riwayat/VehicleHistoryDetail";
 import RoomHistoryDetail from "./components/riwayat/RoomHistoryDetail";
+import RoomDisplay from "./pages/room/RoomDisplay";
 function App() {
   return (
     <BrowserRouter>
@@ -165,9 +166,12 @@ function App() {
             </AuthRoute>
           }
         />
+        {/* DISPLAY MONITOR / TV */}
+<Route path="/display/room" element={<RoomDisplay />} />
       </Routes>
     </BrowserRouter>
   );
 }
+
 
 export default App;
