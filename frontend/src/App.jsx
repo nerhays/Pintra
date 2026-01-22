@@ -18,9 +18,13 @@ import AdminRoomPage from "./pages/admin/master/AdminRoomPage";
 import AdminKendaraan from "./pages/admin/master/AdminKendaraanPage";
 import AdminApprovalRuangPage from "./pages/admin/approval/AdminApprovalRuangPage";
 import ManagerApprovalRoomPage from "./pages/manager/ManagerApprovalRoomPage";
+import AdminApprovalKendaraanPage from "./pages/admin/approval/AdminApprovalKendaraanPage";
+import ManagerApprovalVehiclePage from "./pages/manager/ManagerApprovalVehiclePage";
+
 import VehicleHistoryDetail from "./components/riwayat/VehicleHistoryDetail";
 import RoomHistoryDetail from "./components/riwayat/RoomHistoryDetail";
 import RoomDisplay from "./pages/room/RoomDisplay";
+
 function App() {
   return (
     <BrowserRouter>
@@ -166,12 +170,14 @@ function App() {
             </AuthRoute>
           }
         />
+        <Route path="/admin/approval/kendaraan" element={<AdminApprovalKendaraanPage />} />
+        <Route path="/manager/approval/kendaraan" element={<ManagerApprovalVehiclePage />} />
+
         {/* DISPLAY MONITOR / TV */}
-<Route path="/display/room" element={<RoomDisplay />} />
+        <Route path="/display/room" element={<RoomDisplay />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
 
 export default App;

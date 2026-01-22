@@ -61,8 +61,8 @@ function Navbar({ role: roleProp }) {
         {isAdminPanel && <span onClick={() => navigate("/admin")}>Dashboard Admin</span>}
 
         {/* ✅ MANAGER APPROVAL */}
-        {isManager && <span onClick={() => navigate("/approval/manager/ruang")}>Approval Saya</span>}
-
+        {isManager && <span onClick={() => navigate("/approval/manager/ruang")}>Approval Ruangan</span>}
+        {isManager && <span onClick={() => navigate("/manager/approval/kendaraan")}>Approval Kendaraan</span>}
         {/* RIWAYAT */}
         <span onClick={() => navigate("/riwayat")}>Riwayat</span>
 
@@ -93,7 +93,8 @@ function Navbar({ role: roleProp }) {
         <div className="mobile-menu">
           {isAdminPanel && <div onClick={() => navigate("/admin")}>Dashboard Admin</div>}
 
-          {isManager && <div onClick={() => navigate("/approval/manager/ruang")}>Approval Saya</div>}
+          {isManager && <div onClick={() => navigate("/approval/manager/ruang")}>Approval Ruangan</div>}
+          {isManager && <div onClick={() => navigate("/manager/approval/kendaraan")}>Approval Kendaraan</div>}
 
           <div onClick={() => navigate("/riwayat")}>Riwayat</div>
           <div onClick={() => navigate("/profile")}>Profile</div>

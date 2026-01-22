@@ -1,0 +1,135 @@
+.mgr-approval-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.mgr-approval-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.mgr-approval-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.mgr-approval-header p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.mgr-search {
+  width: 320px;
+  max-width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  outline: none;
+}
+
+.mgr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mgr-card {
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+}
+
+.mgr-card-left h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.mgr-card-left p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: #374151;
+}
+
+.mgr-badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.mgr-badge.pending {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.mgr-card-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.btn-approve {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn-reject {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.mgr-empty {
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px dashed #cbd5e1;
+  background: #fff;
+  text-align: center;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .mgr-card {
+    flex-direction: column;
+  }
+
+  .mgr-card-right {
+    flex-direction: row;
+    justify-content: flex-end;
+    min-width: unset;
+  }
+
+  .mgr-search {
+    width: 100%;
+  }
+
+  .mgr-approval-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

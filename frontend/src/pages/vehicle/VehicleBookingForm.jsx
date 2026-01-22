@@ -7,6 +7,8 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import FooterOrnament from "../../components/FooterOrnament";
 
+import { addVehicleHistory } from "../../utils/vehicleHistory";
+
 import "./VehicleBookingForm.css";
 
 function VehicleBookingForm() {
@@ -19,7 +21,12 @@ function VehicleBookingForm() {
   const end = searchParams.get("end");
 
   const [vehicle, setVehicle] = useState(null);
+
+  // navbar role
   const [role, setRole] = useState(null);
+
+  // ✅ user profile (biar dapat divisi/jabatan/nipp)
+  const [userProfile, setUserProfile] = useState(null);
 
   // FORM STATE
   const [keperluan, setKeperluan] = useState("DINAS");
@@ -30,11 +37,15 @@ function VehicleBookingForm() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // ✅ fetch role biar dashboard admin muncul
-      if (auth.currentUser) {
-        const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
-        const snap = await getDocs(q);
-        if (!snap.empty) setRole(snap.docs[0].data().role);
+      if (!auth.currentUser) return;
+
+      // ✅ ambil profile user login
+      const uq = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
+      const usnap = await getDocs(uq);
+      if (!usnap.empty) {
+        const profile = { uid: usnap.docs[0].id, ...usnap.docs[0].data() };
+        setUserProfile(profile);
+        setRole(profile.role || "user");
       }
 
       // ✅ fetch vehicle detail
@@ -52,6 +63,11 @@ function VehicleBookingForm() {
     try {
       if (!auth.currentUser) {
         alert("Harus login");
+        return;
+      }
+
+      if (!userProfile) {
+        alert("Profile user belum terbaca (cek data users di Firestore)");
         return;
       }
 
@@ -83,36 +99,64 @@ function VehicleBookingForm() {
 
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         alert("Format tanggal tidak valid");
-        setLoadingSubmit(false);
         return;
       }
 
-      await addDoc(collection(db, "vehicle_bookings"), {
+      // ✅ booking payload sesuai struktur MOBILE
+      const payload = {
         peminjamId: auth.currentUser.uid,
         emailPeminjam: auth.currentUser.email,
 
+        // ✅ snapshot user
+        namaPeminjam: userProfile.nama || "-",
+        nipp: userProfile.nipp || "-",
+        jabatan: (userProfile.jabatan || "-").toLowerCase(),
+        divisi: userProfile.divisi || "-",
+        rolePeminjam: userProfile.role || "user",
+
         keperluan,
         tujuan,
-
-        nomorSurat: keperluan === "KEGIATAN_LAIN" ? "-" : nomorSurat,
-        alasan: keperluan === "KEGIATAN_LAIN" ? alasan : "-",
+        nomorSurat: keperluan === "KEGIATAN_LAIN" ? "-" : nomorSurat.trim(),
+        alasan: keperluan === "KEGIATAN_LAIN" ? alasan.trim() : "-",
 
         waktuPinjam: Timestamp.fromDate(startDate),
         waktuKembali: Timestamp.fromDate(endDate),
 
         vehicle: {
           vehicleId: vehicleId,
-          platNomor: vehicle.platNomor || "-",
-          nama: vehicle.nama || "-", // ✅ ini yg benar sesuai Firestore kamu
-          tahun: vehicle.tahun || "-",
-          jenis: vehicle.jenis || "-",
+          platNomor: vehicle?.platNomor || "-",
+          nama: vehicle?.nama || "-",
+          tahun: vehicle?.tahun || "-",
+          jenis: vehicle?.jenis || "-",
         },
 
-        status: "SUBMITTED",
+        // ✅ approval flow
+        status: "APPROVAL_1", // 🔥 tahap manager
         createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+
+        // ✅ tracking approval terakhir
+        lastApprovalBy: userProfile.nama || auth.currentUser.email,
+        lastApprovalJabatan: (userProfile.jabatan || "-").toLowerCase(),
+        lastApprovalRole: userProfile.role || "user",
+      };
+
+      const docRef = await addDoc(collection(db, "vehicle_bookings"), payload);
+
+      // ✅ history pertama
+      await addVehicleHistory(docRef.id, {
+        action: "SUBMITTED",
+        actionBy: userProfile.nama || auth.currentUser.email,
+        actionRole: userProfile.role || "user",
+        actionJabatan: (userProfile.jabatan || "-").toLowerCase(),
+        userId: auth.currentUser.uid,
+        oldStatus: "-",
+        newStatus: "APPROVAL_1",
+        note: "Pengajuan kendaraan dibuat",
+        timestamp: Timestamp.now(),
       });
 
-      alert("✅ Pengajuan peminjaman kendaraan berhasil!");
+      alert("✅ Pengajuan peminjaman kendaraan berhasil! Menunggu approval Manager Divisi.");
       navigate("/riwayat");
     } catch (err) {
       console.error("ERROR SUBMIT:", err);

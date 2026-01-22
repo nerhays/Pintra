@@ -74,7 +74,7 @@ function AdminSidebar({ sidebarOpen, mobileOpen, onCloseMobile }) {
           <div className={`submenu-item ${isActive("/admin/approval/ruang") ? "active-submenu" : ""}`} onClick={() => go("/admin/approval/ruang")}>
             Ruang
           </div>
-          <div className={`submenu-item ${isActive("/admin/approval/kendaraan") ? "active-submenu" : ""}`} onClick={() => go("/admin/approval/mobil")}>
+          <div className={`submenu-item ${isActive("/admin/approval/kendaraan") ? "active-submenu" : ""}`} onClick={() => go("/admin/approval/kendaraan")}>
             Kendaraan
           </div>
         </div>
@@ -90,8 +90,8 @@ function AdminSidebar({ sidebarOpen, mobileOpen, onCloseMobile }) {
           <div className={`submenu-item ${isActive("/admin/monitoring/ruang") ? "active-submenu" : ""}`} onClick={() => go("/admin/monitoring/ruang")}>
             Ruang
           </div>
-          <div className={`submenu-item ${isActive("/admin/monitoring/mobil") ? "active-submenu" : ""}`} onClick={() => go("/admin/monitoring/mobil")}>
-            Mobil
+          <div className={`submenu-item ${isActive("/admin/monitoring/kendaraan") ? "active-submenu" : ""}`} onClick={() => go("/admin/monitoring/kendaraan")}>
+            kendaraan
           </div>
         </div>
       </div>
