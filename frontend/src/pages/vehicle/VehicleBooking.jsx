@@ -67,7 +67,9 @@ function VehicleBooking() {
     // 3️⃣ Filter kendaraan tersedia
     const availableVehicles = allVehicles.filter((vehicle) => {
       // ✅ FIX: ambil booking yg sesuai kendaraan ini
-      const relatedBookings = bookings.filter((b) => b.vehicle?.vehicleId === vehicle.id && b.status !== "COMPLETED");
+      const BLOCKING_STATUS = ["APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "APPROVED", "ON_GOING"];
+
+      const relatedBookings = bookings.filter((b) => b.vehicle?.vehicleId === vehicle.id && BLOCKING_STATUS.includes(b.status));
 
       for (const booking of relatedBookings) {
         const bStart = booking.waktuPinjam?.toDate();
