@@ -242,7 +242,7 @@ function AdminRoomPage() {
                   <label>Status</label>
                   <select value={status} onChange={(e) => setStatus(e.target.value)}>
                     <option value="available">available</option>
-                    <option value="booked">booked</option>
+                    <option value="unavailable">unavailable</option>
                   </select>
                 </div>
 

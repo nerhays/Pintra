@@ -74,8 +74,8 @@ function AdminSidebar({ sidebarOpen, mobileOpen, onCloseMobile }) {
           <div className={`submenu-item ${isActive("/admin/approval/ruang") ? "active-submenu" : ""}`} onClick={() => go("/admin/approval/ruang")}>
             Ruang
           </div>
-          <div className={`submenu-item ${isActive("/admin/approval/mobil") ? "active-submenu" : ""}`} onClick={() => go("/admin/approval/mobil")}>
-            Mobil
+          <div className={`submenu-item ${isActive("/admin/approval/kendaraan") ? "active-submenu" : ""}`} onClick={() => go("/admin/approval/mobil")}>
+            Kendaraan
           </div>
         </div>
 
