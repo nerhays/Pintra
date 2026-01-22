@@ -12,16 +12,16 @@ const styles = {
   wrapper: {
     position: "relative",
     width: "100%",
-    height: 180, // 🔑 tinggi dikunci
+    height: 180,
     overflow: "hidden",
   },
   image: {
     position: "absolute",
     right: 0,
     bottom: 0,
-    height: "auto", // 🔑 tinggi ikut wrapper
-    width: "100%", // 🔑 JANGAN 100%
-    maxWidth: "60vw", // 🔑 cegah kegedean
+    height: "auto",
+    width: "100%",
+    maxWidth: "60vw",
   },
 };
 

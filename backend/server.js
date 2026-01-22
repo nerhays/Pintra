@@ -35,7 +35,6 @@ app.post("/admin/users/create", async (req, res) => {
       });
     }
 
-    // 1) buat user Auth
     const userRecord = await admin.auth().createUser({
       email,
       password,
@@ -44,7 +43,6 @@ app.post("/admin/users/create", async (req, res) => {
 
     const uid = userRecord.uid;
 
-    // 2) simpan user profile ke Firestore
     await db
       .collection("users")
       .doc(uid)
@@ -53,7 +51,7 @@ app.post("/admin/users/create", async (req, res) => {
         email,
         nipp,
         divisi: divisi || "-",
-        jabatan: jabatan || "Staff", // ✅ NEW
+        jabatan: jabatan || "Staff",
         role,
         noTelp: noTelp || "-",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -79,10 +77,8 @@ app.delete("/admin/users/:uid", async (req, res) => {
   try {
     const { uid } = req.params;
 
-    // 1) hapus dari Auth
     await admin.auth().deleteUser(uid);
 
-    // 2) hapus dari Firestore
     await db.collection("users").doc(uid).delete();
 
     return res.json({
