@@ -22,6 +22,9 @@ import AdminApprovalKendaraanPage from "./pages/admin/approval/AdminApprovalKend
 import ManagerApprovalVehiclePage from "./pages/manager/ManagerApprovalVehiclePage";
 
 import VehicleHistoryDetail from "./components/riwayat/VehicleHistoryDetail";
+import VehicleCheckout from "./pages/vehicle/VehicleCheckout";
+import VehicleCheckin from "./pages/vehicle/VehicleCheckin";
+
 import RoomHistoryDetail from "./components/riwayat/RoomHistoryDetail";
 import RoomDisplay from "./pages/room/RoomDisplay";
 
@@ -175,6 +178,8 @@ function App() {
 
         {/* DISPLAY MONITOR / TV */}
         <Route path="/display/room" element={<RoomDisplay />} />
+        <Route path="/vehicle/:bookingId/checkout" element={<VehicleCheckout />} />
+        <Route path="/vehicle/:bookingId/checkin" element={<VehicleCheckin />} />
       </Routes>
     </BrowserRouter>
   );

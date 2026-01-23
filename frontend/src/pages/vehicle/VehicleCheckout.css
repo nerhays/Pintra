@@ -1,0 +1,26 @@
+.checkout-card {
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 16px;
+  border-radius: 12px;
+  margin-top: 16px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
