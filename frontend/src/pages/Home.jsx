@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "../firebase";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+
 import Navbar from "../components/Navbar";
 import FooterOrnament from "../components/FooterOrnament";
 import Footer from "../components/Footer";
@@ -9,8 +10,8 @@ import { useNavigate } from "react-router-dom";
 import kendaraan from "../assets/kendaraan.png";
 import ruangan from "../assets/ruangan.png";
 import gym from "../assets/gym.png";
-import BannerPopup from "../components/BannerPopup";
 
+import BannerPopup from "../components/BannerPopup";
 import "./Home.css";
 
 function Home() {
@@ -24,93 +25,115 @@ function Home() {
   const [bannerData, setBannerData] = useState(null);
   const [showBannerPopup, setShowBannerPopup] = useState(false);
 
-  // ✅ status UI (bukan status firebase)
+  // ✅ status dashboard (UI)
   const [bookingStat, setBookingStat] = useState({
     WAITING_APPROVAL: 0,
     ON_GOING: 0,
-    REJECTED: 0,
     DONE: 0,
+    REJECTED: 0,
   });
 
   useEffect(() => {
     const fetchRole = async () => {
-      try {
-        if (!auth.currentUser) return;
+      if (!auth.currentUser) return;
 
-        const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
-        const snapshot = await getDocs(q);
+      const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
+      const snapshot = await getDocs(q);
 
-        if (!snapshot.empty) {
-          setRole(snapshot.docs[0].data().role);
-        }
-      } catch (err) {
-        console.error("Fetch role error:", err);
+      if (!snapshot.empty) {
+        setRole(snapshot.docs[0].data().role);
       }
     };
 
     const fetchDashboardData = async () => {
-      try {
-        if (!auth.currentUser) return;
-        const uid = auth.currentUser.uid;
+      if (!auth.currentUser) return;
+      const uid = auth.currentUser.uid;
 
-        /* ===== RUANG ===== */
-        const roomSnap = await getDocs(collection(db, "rooms"));
-        const rooms = roomSnap.docs.map((d) => d.data());
+      /* ===== RUANG ===== */
+      const roomSnap = await getDocs(collection(db, "rooms"));
+      const rooms = roomSnap.docs.map((d) => d.data());
 
-        setRoomStat({
-          total: rooms.length,
-          available: rooms.filter((r) => r.status === "available").length,
-        });
+      setRoomStat({
+        total: rooms.length,
+        available: rooms.filter((r) => r.status === "available").length,
+      });
 
-        /* ===== KENDARAAN ===== */
-        const vehicleSnap = await getDocs(collection(db, "vehicles"));
-        const vehicles = vehicleSnap.docs.map((d) => d.data());
+      /* ===== KENDARAAN ===== */
+      const vehicleSnap = await getDocs(collection(db, "vehicles"));
+      const vehicles = vehicleSnap.docs.map((d) => d.data());
 
-        setVehicleStat({
-          total: vehicles.length,
-          available: vehicles.filter((v) => v.statusAktif).length,
-        });
+      setVehicleStat({
+        total: vehicles.length,
+        available: vehicles.filter((v) => v.statusAktif).length,
+      });
 
-        /* ===== BOOKING USER ===== */
-        const roomBookingSnap = await getDocs(query(collection(db, "room_bookings"), where("peminjam.userId", "==", uid)));
+      /* ===== BOOKING USER ===== */
+      const roomBookingSnap = await getDocs(query(collection(db, "room_bookings"), where("peminjam.userId", "==", uid)));
 
-        const vehicleBookingSnap = await getDocs(query(collection(db, "vehicle_bookings"), where("peminjamId", "==", uid)));
+      const vehicleBookingSnap = await getDocs(query(collection(db, "vehicle_bookings"), where("peminjamId", "==", uid)));
 
-        const allBookings = [...roomBookingSnap.docs.map((d) => d.data()), ...vehicleBookingSnap.docs.map((d) => d.data())];
+      const allBookings = [...roomBookingSnap.docs.map((d) => d.data()), ...vehicleBookingSnap.docs.map((d) => d.data())];
 
-        // ✅ mapping UI (tanpa ubah firebase)
-        const stat = {
-          WAITING_APPROVAL: 0,
-          ON_GOING: 0,
-          REJECTED: 0,
-          DONE: 0,
-        };
+      // ✅ reset stat
+      const stat = {
+        WAITING_APPROVAL: 0,
+        ON_GOING: 0,
+        DONE: 0,
+        REJECTED: 0,
+      };
 
-        allBookings.forEach((b) => {
-          const s = b.status;
+      // ✅ mapping sesuai Firebase status
+      allBookings.forEach((b) => {
+        const s = b.status;
 
-          // ✅ WAITING APPROVAL
-          if (s === "SUBMITTED" || s === "APPROVAL_1" || s === "APPROVAL_2" || s === "APPROVAL_3" || s === "APPROVED") {
-            stat.WAITING_APPROVAL++;
-          }
-          // ✅ ON GOING
-          else if (s === "ON_GOING") {
-            stat.ON_GOING++;
-          }
-          // ✅ DONE
-          else if (s === "DONE") {
-            stat.DONE++;
-          }
-          // ✅ REJECTED (include CANCELLED)
-          else if (s === "REJECTED" || s === "CANCELLED") {
-            stat.REJECTED++;
-          }
-        });
+        /* =========================
+           ✅ ROOM BOOKING STATUS
+           WAITING_MANAGER / OPERATOR / ADMIN
+           APPROVED (bisa dipakai)
+           REJECTED
+        ========================= */
+        if (s === "WAITING_MANAGER" || s === "WAITING_OPERATOR" || s === "WAITING_ADMIN") {
+          stat.WAITING_APPROVAL++;
+          return;
+        }
 
-        setBookingStat(stat);
-      } catch (err) {
-        console.error("Fetch dashboard data error:", err);
-      }
+        if (s === "APPROVED") {
+          // ✅ ruang sudah bisa dipakai → masuk ON_GOING
+          stat.ON_GOING++;
+          return;
+        }
+
+        if (s === "REJECTED") {
+          stat.REJECTED++;
+          return;
+        }
+
+        /* =========================
+           ✅ VEHICLE BOOKING STATUS
+           (sesuaikan dengan sistemmu)
+        ========================= */
+        if (s === "SUBMITTED" || s === "APPROVAL_1" || s === "WAITING_APPROVAL") {
+          stat.WAITING_APPROVAL++;
+          return;
+        }
+
+        if (s === "ON_GOING") {
+          stat.ON_GOING++;
+          return;
+        }
+
+        if (s === "DONE" || s === "COMPLETED") {
+          stat.DONE++;
+          return;
+        }
+
+        if (s === "CANCELLED") {
+          stat.REJECTED++;
+          return;
+        }
+      });
+
+      setBookingStat(stat);
     };
 
     const fetchBanner = async () => {
@@ -122,7 +145,6 @@ function Home() {
           const val = snap.data();
           setBannerData(val);
 
-          // ✅ munculin popup kalau aktif
           if (val.isActive) {
             setShowBannerPopup(true);
           }
@@ -210,8 +232,8 @@ function Home() {
 
           <div className="status-grid">
             <StatusBox color="yellow" title="WAITING APPROVAL" value={`${bookingStat.WAITING_APPROVAL} Pengajuan`} />
-            <StatusBox color="blue" title="ON GOING" value={`${bookingStat.ON_GOING} Dipakai`} />
-            <StatusBox color="red" title="REJECTED" value={`${bookingStat.REJECTED} Ditolak/Batal`} />
+            <StatusBox color="blue" title="ON GOING" value={`${bookingStat.ON_GOING} Kegiatan`} />
+            <StatusBox color="red" title="REJECTED" value={`${bookingStat.REJECTED} Pengajuan`} />
             <StatusBox color="green" title="DONE" value={`${bookingStat.DONE} Selesai`} />
           </div>
         </div>
