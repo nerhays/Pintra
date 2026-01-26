@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { doc, getDoc, setDoc, Timestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
+import AdminLayout from "../../components/admin/AdminLayout";
 import { compressImageToBase64 } from "../../utils/compressImageToBase64";
+
+import "./AdminBannerHome.css";
 
 function AdminBannerHome() {
   const [role, setRole] = useState(null);
@@ -13,10 +14,10 @@ function AdminBannerHome() {
   const [title, setTitle] = useState("Pengumuman");
   const [message, setMessage] = useState("");
 
-  // ✅ simpan base64 di firestore (bukan storage)
+  // ✅ simpan base64 di firestore
   const [imageBase64, setImageBase64] = useState("");
 
-  // preview
+  // ✅ preview
   const [previewUrl, setPreviewUrl] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -52,7 +53,6 @@ function AdminBannerHome() {
         setMessage(d.message ?? "");
         setImageBase64(d.imageBase64 ?? "");
 
-        // preview kalau sudah ada base64
         if (d.imageBase64) {
           setPreviewUrl(`data:image/jpeg;base64,${d.imageBase64}`);
         }
@@ -78,7 +78,6 @@ function AdminBannerHome() {
     if (!file) return;
 
     try {
-      // ✅ compress otomatis
       const result = await compressImageToBase64(file, {
         maxWidth: 1280,
         maxHeight: 720,
@@ -86,18 +85,14 @@ function AdminBannerHome() {
         mimeType: "image/jpeg",
       });
 
-      // ✅ cek size hasil base64
-      const limitBytes = 950000; // aman < 1,048,487
+      const limitBytes = 950000; // aman < 1MB firestore
       if (result.approxSizeBytes > limitBytes) {
-        alert(`❌ Gambar masih terlalu besar setelah compress.\n` + `Ukuran: ${(result.approxSizeBytes / 1024).toFixed(1)} KB\n` + `Coba pakai gambar lebih kecil atau turunkan kualitas compress.`);
+        alert(`❌ Gambar masih terlalu besar setelah compress.\n` + `Ukuran: ${(result.approxSizeBytes / 1024).toFixed(1)} KB\n` + `Coba pakai gambar lebih kecil / turunkan quality.`);
         return;
       }
 
       setImageBase64(result.pureBase64);
       setPreviewUrl(result.dataUrl);
-
-      alert(`✅ Gambar berhasil dikompres!\n` + `Ukuran approx: ${(result.approxSizeBytes / 1024).toFixed(1)} KB\n` + `Dimensi: ${result.width}x${result.height}`);
-
       e.target.value = "";
     } catch (err) {
       console.error(err);
@@ -137,7 +132,7 @@ function AdminBannerHome() {
         isActive,
         title: title.trim(),
         message: message.trim(),
-        imageBase64: imageBase64,
+        imageBase64,
         updatedAt: now,
         updatedBy: auth.currentUser.uid,
       });
@@ -151,75 +146,55 @@ function AdminBannerHome() {
     }
   };
 
-  if (loading) return <div style={{ padding: 40 }}>Loading...</div>;
-
   return (
-    <>
-      <Navbar role={role} />
-
-      <div style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
-        <h2>Kelola Popup Banner Home</h2>
-
-        <div style={{ marginTop: 16, background: "#fff", padding: 16, borderRadius: 12 }}>
-          <label style={{ display: "block", marginBottom: 12 }}>
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Aktifkan Popup Banner
-          </label>
-
-          <div style={{ marginBottom: 12 }}>
-            <label>Judul</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: "100%", padding: 10, marginTop: 6 }} />
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <label>Pesan</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} style={{ width: "100%", padding: 10, marginTop: 6, minHeight: 90 }} />
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <label>Upload Banner (Auto Compress ke Base64)</label>
-            <input type="file" accept="image/*" onChange={handleImageChange} style={{ marginTop: 6 }} />
-            <small style={{ display: "block", marginTop: 6, color: "#6b7280" }}>*Gambar akan otomatis resize + compress agar muat di Firestore (limit 1MB).</small>
-          </div>
-
-          {previewUrl && (
-            <div style={{ marginTop: 12 }}>
-              <p style={{ color: "green" }}>✅ Preview Banner</p>
-              <img
-                src={previewUrl}
-                alt="preview"
-                style={{
-                  width: "100%",
-                  maxHeight: 250,
-                  objectFit: "cover",
-                  borderRadius: 12,
-                  border: "1px solid #e5e7eb",
-                }}
-              />
-            </div>
-          )}
-
-          <button
-            onClick={saveBanner}
-            disabled={saving}
-            style={{
-              marginTop: 16,
-              padding: 12,
-              width: "100%",
-              borderRadius: 10,
-              border: "none",
-              background: "#2563eb",
-              color: "white",
-              fontWeight: 700,
-              cursor: saving ? "not-allowed" : "pointer",
-            }}
-          >
-            {saving ? "Menyimpan..." : "✅ Simpan Banner"}
-          </button>
+    <AdminLayout>
+      <div className="admin-banner-page">
+        <div className="admin-banner-header">
+          <h2>Kelola Popup Banner Home</h2>
+          <p>Admin / Operator bisa mengganti banner popup yang muncul di halaman Home.</p>
         </div>
-      </div>
 
-      <Footer />
-    </>
+        {loading ? (
+          <div className="admin-banner-loading">Loading...</div>
+        ) : (
+          <div className="admin-banner-card">
+            <label className="admin-banner-checkbox">
+              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+              Aktifkan Popup Banner
+            </label>
+
+            <div className="admin-banner-form">
+              <div className="admin-banner-group">
+                <label>Judul</label>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Contoh: Pengumuman" />
+              </div>
+
+              <div className="admin-banner-group">
+                <label>Pesan</label>
+                <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Contoh: Harap isi form sesuai prosedur" />
+              </div>
+
+              <div className="admin-banner-group">
+                <label>Upload Banner (Auto Compress Base64)</label>
+                <input type="file" accept="image/*" onChange={handleImageChange} />
+                <small>*Gambar otomatis resize + compress supaya masuk limit Firestore.</small>
+              </div>
+
+              {previewUrl && (
+                <div className="admin-banner-preview">
+                  <p>✅ Preview Banner</p>
+                  <img src={previewUrl} alt="preview" />
+                </div>
+              )}
+
+              <button className="admin-banner-btn" onClick={saveBanner} disabled={saving}>
+                {saving ? "Menyimpan..." : "✅ Simpan Banner"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
   );
 }
 

@@ -174,14 +174,49 @@ function App() {
             </AuthRoute>
           }
         />
-        <Route path="/admin/approval/kendaraan" element={<AdminApprovalKendaraanPage />} />
-        <Route path="/manager/approval/kendaraan" element={<ManagerApprovalVehiclePage />} />
+        <Route
+          path="/admin/approval/kendaraan"
+          element={
+            <AdminRoute>
+              <AdminApprovalKendaraanPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/manager/approval/kendaraan"
+          element={
+            <AuthRoute>
+              <ManagerApprovalVehiclePage />
+            </AuthRoute>
+          }
+        />
 
         {/* DISPLAY MONITOR / TV */}
         <Route path="/display/room" element={<RoomDisplay />} />
-        <Route path="/vehicle/:bookingId/checkout" element={<VehicleCheckout />} />
-        <Route path="/vehicle/:bookingId/checkin" element={<VehicleCheckin />} />
-        <Route path="/admin/banner-home" element={<AdminBannerHome />} />
+        <Route
+          path="/vehicle/:bookingId/checkout"
+          element={
+            <AuthRoute>
+              <VehicleCheckout />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/vehicle/:bookingId/checkin"
+          element={
+            <AuthRoute>
+              <VehicleCheckin />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path="/admin/banner-home"
+          element={
+            <AdminRoute>
+              <AdminBannerHome />
+            </AdminRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
