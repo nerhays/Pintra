@@ -217,7 +217,7 @@ function VehicleCheckin() {
     <>
       <Navbar />
 
-      <div style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ padding: 20, maxWidth: 900, margin: "0 auto", paddingTop: 110 }}>
         <button onClick={() => navigate(`/riwayat/kendaraan/${bookingId}`)} style={{ marginBottom: 20 }}>
           ← Kembali
         </button>

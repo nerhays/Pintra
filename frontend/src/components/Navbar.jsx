@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../firebase";
@@ -14,9 +14,16 @@ function Navbar({ role: roleProp }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // ✅ ambil role & jabatan dari Firestore (biar manager bisa kebaca)
+  // ✅ dropdown approval
+  const [approvalOpen, setApprovalOpen] = useState(false);
+
+  // ✅ ambil role & jabatan dari Firestore
   const [role, setRole] = useState(roleProp || null);
   const [jabatan, setJabatan] = useState(null);
+
+  // ✅ untuk close dropdown ketika klik luar
+  const profileRef = useRef(null);
+  const approvalRef = useRef(null);
 
   useEffect(() => {
     const fetchRoleAndJabatan = async () => {
@@ -39,6 +46,21 @@ function Navbar({ role: roleProp }) {
     fetchRoleAndJabatan();
   }, [roleProp]);
 
+  // ✅ close dropdown kalau klik di luar
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+      if (approvalRef.current && !approvalRef.current.contains(e.target)) {
+        setApprovalOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const logout = async () => {
     await signOut(auth);
     navigate("/");
@@ -60,14 +82,55 @@ function Navbar({ role: roleProp }) {
         {/* ✅ ADMIN / OPERATOR */}
         {isAdminPanel && <span onClick={() => navigate("/admin")}>Dashboard Admin</span>}
 
-        {/* ✅ MANAGER APPROVAL */}
-        {isManager && <span onClick={() => navigate("/approval/manager/ruang")}>Approval Ruangan</span>}
-        {isManager && <span onClick={() => navigate("/manager/approval/kendaraan")}>Approval Kendaraan</span>}
+        {/* ✅ MANAGER APPROVAL DROPDOWN */}
+        {isManager && (
+          <div className="nav-dropdown" ref={approvalRef}>
+            <span
+              className="nav-dropdown-trigger"
+              onClick={() => {
+                setApprovalOpen(!approvalOpen);
+                setProfileOpen(false); // tutup profile kalau approval dibuka
+              }}
+            >
+              Approval <span className="nav-caret">▼</span>
+            </span>
+
+            {approvalOpen && (
+              <div className="nav-dropdown-menu">
+                <div
+                  onClick={() => {
+                    setApprovalOpen(false);
+                    navigate("/approval/manager/ruang");
+                  }}
+                >
+                  Approval Ruangan
+                </div>
+
+                <div
+                  onClick={() => {
+                    setApprovalOpen(false);
+                    navigate("/manager/approval/kendaraan");
+                  }}
+                >
+                  Approval Kendaraan
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* RIWAYAT */}
         <span onClick={() => navigate("/riwayat")}>Riwayat</span>
 
         {/* PROFILE */}
-        <div className="profile-wrapper" onClick={() => setProfileOpen(!profileOpen)}>
+        <div
+          className="profile-wrapper"
+          ref={profileRef}
+          onClick={() => {
+            setProfileOpen(!profileOpen);
+            setApprovalOpen(false); // tutup approval kalau profile dibuka
+          }}
+        >
           <img src={profileIcon} alt="profile" />
           <span className="profile-email">{auth.currentUser?.email || "User"}</span>
           <span>▼</span>
@@ -93,11 +156,48 @@ function Navbar({ role: roleProp }) {
         <div className="mobile-menu">
           {isAdminPanel && <div onClick={() => navigate("/admin")}>Dashboard Admin</div>}
 
-          {isManager && <div onClick={() => navigate("/approval/manager/ruang")}>Approval Ruangan</div>}
-          {isManager && <div onClick={() => navigate("/manager/approval/kendaraan")}>Approval Kendaraan</div>}
+          {/* ✅ Approval jadi dropdown versi mobile (collapsible) */}
+          {/* ✅ MOBILE: tanpa dropdown */}
+          {isManager && (
+            <>
+              <div
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate("/approval/manager/ruang");
+                }}
+              >
+                Approval Ruangan
+              </div>
 
-          <div onClick={() => navigate("/riwayat")}>Riwayat</div>
-          <div onClick={() => navigate("/profile")}>Profile</div>
+              <div
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate("/manager/approval/kendaraan");
+                }}
+              >
+                Approval Kendaraan
+              </div>
+            </>
+          )}
+
+          <div
+            onClick={() => {
+              setMenuOpen(false);
+              navigate("/riwayat");
+            }}
+          >
+            Riwayat
+          </div>
+
+          <div
+            onClick={() => {
+              setMenuOpen(false);
+              navigate("/profile");
+            }}
+          >
+            Profile
+          </div>
+
           <div onClick={logout}>Logout</div>
         </div>
       )}

@@ -5,6 +5,7 @@ import { auth, db } from "../../firebase";
 
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import FooterOrnament from "../../components/FooterOrnament";
 import "./VehicleCheckout.css";
 
 function VehicleCheckout() {
@@ -227,7 +228,7 @@ function VehicleCheckout() {
     <>
       <Navbar />
 
-      <div style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ padding: 20, maxWidth: 900, margin: "0 auto", paddingTop: 110 }}>
         <button onClick={() => navigate(`/riwayat/kendaraan/${bookingId}`)} style={{ marginBottom: 20 }}>
           ← Kembali
         </button>
@@ -317,7 +318,7 @@ function VehicleCheckout() {
           </button>
         </div>
       </div>
-
+      <FooterOrnament />
       <Footer />
     </>
   );

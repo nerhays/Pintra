@@ -1,6 +1,7 @@
 /* ================= CONTAINER ================= */
 .vehicle-container {
   padding: 40px;
+  padding-top: 110px;
 }
 
 @media (max-width: 768px) {
