@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, getDocs, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../../firebase";
+import { collection, doc, getDocs, updateDoc, serverTimestamp, query, where } from "firebase/firestore";
+import { auth, db } from "../../../firebase";
 
 import AdminLayout from "../../../components/admin/AdminLayout";
 import "./AdminUserPage.css";
@@ -15,6 +15,9 @@ function AdminUserPage() {
 
   const [saving, setSaving] = useState(false);
 
+  // ✅ role yang login sekarang
+  const [myRole, setMyRole] = useState(null);
+
   // form state
   const [nama, setNama] = useState("");
   const [email, setEmail] = useState("");
@@ -22,10 +25,13 @@ function AdminUserPage() {
 
   const [nipp, setNipp] = useState("");
   const [divisi, setDivisi] = useState("");
-  const [jabatan, setJabatan] = useState("staff"); // ✅ NEW
+  const [jabatan, setJabatan] = useState("staff");
 
   const [role, setRole] = useState("user");
   const [noTelp, setNoTelp] = useState("");
+
+  const isAdmin = myRole === "admin";
+  const isOperator = myRole === "operator";
 
   const resetForm = () => {
     setNama("");
@@ -33,10 +39,28 @@ function AdminUserPage() {
     setPassword("");
     setNipp("");
     setDivisi("");
-    setJabatan("staff"); // ✅ NEW
+    setJabatan("staff");
     setRole("user");
     setNoTelp("");
     setSelectedId(null);
+  };
+
+  const fetchMyRole = async () => {
+    try {
+      if (!auth.currentUser?.email) return;
+
+      const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        setMyRole(snap.docs[0].data().role || "user");
+      } else {
+        setMyRole("user");
+      }
+    } catch (err) {
+      console.error("❌ fetchMyRole error:", err);
+      setMyRole("user");
+    }
   };
 
   const fetchUsers = async () => {
@@ -49,7 +73,11 @@ function AdminUserPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    const run = async () => {
+      await fetchMyRole();
+      await fetchUsers();
+    };
+    run();
   }, []);
 
   const filteredUsers = useMemo(() => {
@@ -73,7 +101,7 @@ function AdminUserPage() {
     setEmail(u.email || "");
     setNipp(u.nipp || "");
     setDivisi(u.divisi || "");
-    setJabatan(u.jabatan || "staff"); // ✅ NEW
+    setJabatan(u.jabatan || "staff");
     setRole(u.role || "user");
     setNoTelp(u.noTelp || "");
 
@@ -84,8 +112,8 @@ function AdminUserPage() {
     if (saving) return;
 
     // ✅ validasi
-    if (!nama || !email || !role || !jabatan) {
-      alert("Nama, Email, Jabatan, Role wajib diisi!");
+    if (!nama || !email || !jabatan) {
+      alert("Nama, Email, Jabatan wajib diisi!");
       return;
     }
 
@@ -98,7 +126,10 @@ function AdminUserPage() {
 
     try {
       if (mode === "ADD") {
-        // ✅ CREATE lewat backend (Auth + Firestore)
+        // ✅ Tambah user tetap lewat backend
+        // ✅ Role boleh dipilih hanya jika admin, operator otomatis hanya user
+        const finalRole = isAdmin ? role : "user";
+
         const res = await fetch("http://localhost:8080/admin/users/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -108,8 +139,8 @@ function AdminUserPage() {
             password,
             nipp,
             divisi,
-            jabatan, // ✅ NEW
-            role,
+            jabatan,
+            role: finalRole, // ✅ operator tidak bisa assign operator/admin
             noTelp,
           }),
         });
@@ -123,17 +154,32 @@ function AdminUserPage() {
           throw new Error(result.message || "Gagal tambah user (backend error)");
         }
       } else {
-        // ✅ EDIT hanya Firestore
-        await updateDoc(doc(db, "users", selectedId), {
+        // ✅ EDIT Firestore
+
+        // Ambil role lama dari user yg diedit (biar operator gak bisa ubah)
+        const oldUser = users.find((x) => x.id === selectedId);
+        const oldRole = oldUser?.role || "user";
+
+        // ✅ Payload update aman
+        const payload = {
           nama,
           email,
           nipp,
           divisi,
-          jabatan, // ✅ NEW
-          role,
+          jabatan,
           noTelp,
           updatedAt: serverTimestamp(),
-        });
+        };
+
+        // ✅ HANYA ADMIN yang boleh ubah role
+        if (isAdmin) {
+          payload.role = role;
+        } else {
+          // operator/staff tidak boleh ubah role → keep old role
+          payload.role = oldRole;
+        }
+
+        await updateDoc(doc(db, "users", selectedId), payload);
       }
 
       setOpenForm(false);
@@ -149,6 +195,12 @@ function AdminUserPage() {
   };
 
   const handleDelete = async (uid) => {
+    // ✅ hanya admin boleh delete
+    if (!isAdmin) {
+      alert("❌ Hanya admin yang boleh menghapus user!");
+      return;
+    }
+
     const ok = confirm("Yakin hapus user ini?");
     if (!ok) return;
 
@@ -198,7 +250,7 @@ function AdminUserPage() {
                   <th>Email</th>
                   <th>NIPP</th>
                   <th>Divisi</th>
-                  <th>Jabatan</th> {/* ✅ NEW */}
+                  <th>Jabatan</th>
                   <th>Role</th>
                   <th>No Telp</th>
                   <th className="sticky-action">Aksi</th>
@@ -232,9 +284,13 @@ function AdminUserPage() {
                         <button className="btn-small" onClick={() => openEdit(u)}>
                           Edit
                         </button>
-                        <button className="btn-small danger" onClick={() => handleDelete(u.id)}>
-                          Hapus
-                        </button>
+
+                        {/* ✅ delete hanya admin */}
+                        {isAdmin && (
+                          <button className="btn-small danger" onClick={() => handleDelete(u.id)}>
+                            Hapus
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -278,7 +334,6 @@ function AdminUserPage() {
                   <input value={divisi} onChange={(e) => setDivisi(e.target.value)} placeholder="Divisi" />
                 </div>
 
-                {/* ✅ NEW: Jabatan */}
                 <div className="form-group">
                   <label>Jabatan</label>
                   <select value={jabatan} onChange={(e) => setJabatan(e.target.value)}>
@@ -287,13 +342,25 @@ function AdminUserPage() {
                   </select>
                 </div>
 
+                {/* ✅ ROLE: operator tidak boleh ubah */}
                 <div className="form-group">
-                  <label>Role</label>
-                  <select value={role} onChange={(e) => setRole(e.target.value)}>
+                  <label>Role {!isAdmin && <span style={{ color: "#6b7280", fontSize: 12 }}>(hanya admin)</span>}</label>
+
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    disabled={!isAdmin}
+                    style={{
+                      background: !isAdmin ? "#f3f4f6" : "white",
+                      cursor: !isAdmin ? "not-allowed" : "pointer",
+                    }}
+                  >
                     <option value="user">user</option>
                     <option value="operator">operator</option>
                     <option value="admin">admin</option>
                   </select>
+
+                  {!isAdmin && <small style={{ display: "block", marginTop: 6, color: "#6b7280" }}>Operator hanya bisa edit data user, tidak bisa mengubah role.</small>}
                 </div>
 
                 <div className="form-group">
