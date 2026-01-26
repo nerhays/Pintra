@@ -35,6 +35,23 @@ function VehicleBookingForm() {
   const [alasan, setAlasan] = useState("");
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
+  // ✅ cari manager divisi (untuk staff/operator yang bukan manager)
+  const findManagerDivisi = async (divisi) => {
+    if (!divisi) return null;
+
+    const qManager = query(collection(db, "users"), where("divisi", "==", divisi), where("jabatan", "==", "manager"));
+    const managerSnap = await getDocs(qManager);
+
+    if (managerSnap.empty) return null;
+
+    const managerDoc = managerSnap.docs[0];
+
+    return {
+      uid: managerDoc.id,
+      ...managerDoc.data(),
+    };
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (!auth.currentUser) return;
@@ -42,6 +59,7 @@ function VehicleBookingForm() {
       // ✅ ambil profile user login
       const uq = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
       const usnap = await getDocs(uq);
+
       if (!usnap.empty) {
         const profile = { uid: usnap.docs[0].id, ...usnap.docs[0].data() };
         setUserProfile(profile);
@@ -102,7 +120,74 @@ function VehicleBookingForm() {
         return;
       }
 
-      // ✅ booking payload sesuai struktur MOBILE
+      const now = Timestamp.now();
+
+      const roleBorrower = (userProfile.role || "").toLowerCase(); // admin/operator/user
+      const jabatanBorrower = (userProfile.jabatan || "").toLowerCase(); // manager/staff
+
+      const isAdminBorrower = roleBorrower === "admin";
+      const isManagerBorrower = jabatanBorrower === "manager";
+
+      // ✅ cari manager kalau peminjam bukan admin dan bukan manager
+      let manager = null;
+      if (!isAdminBorrower && !isManagerBorrower) {
+        manager = await findManagerDivisi(userProfile.divisi);
+
+        if (!manager) {
+          alert("Manager divisi tidak ditemukan. Pastikan ada user jabatan=manager pada divisi ini.");
+          return;
+        }
+      }
+
+      /**
+       * ✅ STATUS FLOW (samakan room)
+       * - admin -> APPROVED (langsung boleh dipakai)
+       * - manager -> APPROVAL_2 (manager auto approve, lanjut operator)
+       * - staff/user -> APPROVAL_1 (waiting manager)
+       */
+      let initialStatus = "APPROVAL_1";
+      if (isAdminBorrower) initialStatus = "APPROVED";
+      else if (isManagerBorrower) initialStatus = "APPROVAL_2";
+
+      /**
+       * ✅ approval map (samakan room structure)
+       */
+      const approval = {
+        manager:
+          isAdminBorrower || isManagerBorrower
+            ? {
+                uid: auth.currentUser.uid,
+                nama: userProfile.nama || "-",
+                email: userProfile.email || auth.currentUser.email,
+                status: "APPROVED",
+                approvedAt: now,
+              }
+            : {
+                uid: manager.uid,
+                nama: manager.nama || "-",
+                email: manager.email || "-",
+                status: "PENDING",
+                approvedAt: null,
+              },
+
+        operator: {
+          uid: "-",
+          nama: "-",
+          email: "-",
+          status: isAdminBorrower ? "APPROVED" : "WAITING",
+          approvedAt: isAdminBorrower ? now : null,
+        },
+
+        admin: {
+          uid: "-",
+          nama: "-",
+          email: "-",
+          status: isAdminBorrower ? "APPROVED" : "WAITING",
+          approvedAt: isAdminBorrower ? now : null,
+        },
+      };
+
+      // ✅ booking payload final
       const payload = {
         peminjamId: auth.currentUser.uid,
         emailPeminjam: auth.currentUser.email,
@@ -110,9 +195,9 @@ function VehicleBookingForm() {
         // ✅ snapshot user
         namaPeminjam: userProfile.nama || "-",
         nipp: userProfile.nipp || "-",
-        jabatan: (userProfile.jabatan || "-").toLowerCase(),
+        jabatan: jabatanBorrower || "-",
         divisi: userProfile.divisi || "-",
-        rolePeminjam: userProfile.role || "user",
+        rolePeminjam: roleBorrower || "user",
 
         keperluan,
         tujuan,
@@ -130,15 +215,15 @@ function VehicleBookingForm() {
           jenis: vehicle?.jenis || "-",
         },
 
-        // ✅ approval flow
-        status: "APPROVAL_1", // 🔥 tahap manager
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
+        approval,
+        status: initialStatus,
+        createdAt: now,
+        updatedAt: now,
 
         // ✅ tracking approval terakhir
         lastApprovalBy: userProfile.nama || auth.currentUser.email,
-        lastApprovalJabatan: (userProfile.jabatan || "-").toLowerCase(),
-        lastApprovalRole: userProfile.role || "user",
+        lastApprovalJabatan: jabatanBorrower || "-",
+        lastApprovalRole: roleBorrower || "user",
       };
 
       const docRef = await addDoc(collection(db, "vehicle_bookings"), payload);
@@ -147,16 +232,24 @@ function VehicleBookingForm() {
       await addVehicleHistory(docRef.id, {
         action: "SUBMITTED",
         actionBy: userProfile.nama || auth.currentUser.email,
-        actionRole: userProfile.role || "user",
-        actionJabatan: (userProfile.jabatan || "-").toLowerCase(),
+        actionRole: roleBorrower || "user",
+        actionJabatan: jabatanBorrower || "-",
         userId: auth.currentUser.uid,
         oldStatus: "-",
-        newStatus: "APPROVAL_1",
+        newStatus: initialStatus,
         note: "Pengajuan kendaraan dibuat",
-        timestamp: Timestamp.now(),
+        timestamp: now,
       });
 
-      alert("✅ Pengajuan peminjaman kendaraan berhasil! Menunggu approval Manager Divisi.");
+      // ✅ notif sesuai role
+      if (isAdminBorrower) {
+        alert("✅ Booking kendaraan berhasil (Auto Approved karena ADMIN)");
+      } else if (isManagerBorrower) {
+        alert("✅ Booking kendaraan berhasil (Auto Approved Manager, lanjut Approval Operator)");
+      } else {
+        alert("✅ Booking kendaraan berhasil diajukan. Menunggu approval Manager Divisi.");
+      }
+
       navigate("/riwayat");
     } catch (err) {
       console.error("ERROR SUBMIT:", err);
