@@ -276,3 +276,17 @@
 
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
+/* ================= JUDUL JADWAL ================= */
+.left-section h1 {
+  font-size: 52px;
+  font-weight: 700;
+  font-style: italic; /* MIRING */
+  margin-bottom: 32px;
+
+  /* SHADOW HALUS */
+  text-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    0 0 18px rgba(255, 255, 255, 0.12);
+
+  letter-spacing: 0.8px;
+}
