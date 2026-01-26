@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc, Timestamp, collection, addDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
-
+import { compressImageToBase64 } from "../../utils/compressImageToBase64";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import "./VehicleCheckin.css";
@@ -53,34 +53,31 @@ function VehicleCheckin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookingId]);
 
-  const fileToPureBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = String(reader.result || "");
-        const pure = base64.includes(",") ? base64.split(",")[1] : base64;
-        resolve(pure);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
   const handlePhotoChange = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
     try {
       const base64Arr = [];
+
       for (const f of files) {
-        const b64 = await fileToPureBase64(f);
-        base64Arr.push(b64);
+        const result = await compressImageToBase64(f, {
+          maxWidth: 1280,
+          maxHeight: 720,
+          quality: 0.7,
+          mimeType: "image/jpeg",
+        });
+
+        if (result?.pureBase64) {
+          base64Arr.push(result.pureBase64);
+        }
       }
 
       setFotoBase64List((prev) => [...prev, ...base64Arr]);
       e.target.value = "";
     } catch (err) {
       console.error(err);
-      alert("Gagal membaca foto!");
+      alert("Gagal membaca / compress foto!");
     }
   };
 
