@@ -20,6 +20,7 @@ import AdminApprovalRuangPage from "./pages/admin/approval/AdminApprovalRuangPag
 import ManagerApprovalRoomPage from "./pages/manager/ManagerApprovalRoomPage";
 import AdminApprovalKendaraanPage from "./pages/admin/approval/AdminApprovalKendaraanPage";
 import ManagerApprovalVehiclePage from "./pages/manager/ManagerApprovalVehiclePage";
+import AdminBannerHome from "./pages/admin/AdminBannerHome";
 
 import VehicleHistoryDetail from "./components/riwayat/VehicleHistoryDetail";
 import VehicleCheckout from "./pages/vehicle/VehicleCheckout";
@@ -180,6 +181,7 @@ function App() {
         <Route path="/display/room" element={<RoomDisplay />} />
         <Route path="/vehicle/:bookingId/checkout" element={<VehicleCheckout />} />
         <Route path="/vehicle/:bookingId/checkin" element={<VehicleCheckin />} />
+        <Route path="/admin/banner-home" element={<AdminBannerHome />} />
       </Routes>
     </BrowserRouter>
   );

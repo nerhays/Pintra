@@ -10,6 +10,8 @@ import banner from "../assets/banner.png";
 import kendaraan from "../assets/kendaraan.png";
 import ruangan from "../assets/ruangan.png";
 import gym from "../assets/gym.png";
+import { doc, getDoc } from "firebase/firestore";
+import BannerPopup from "../components/BannerPopup";
 
 import "./Home.css";
 
@@ -18,6 +20,8 @@ function Home() {
   const [role, setRole] = useState(null);
   const [roomStat, setRoomStat] = useState({ available: 0, total: 0 });
   const [vehicleStat, setVehicleStat] = useState({ available: 0, total: 0 });
+  const [bannerData, setBannerData] = useState(null);
+  const [showBannerPopup, setShowBannerPopup] = useState(false);
 
   const [bookingStat, setBookingStat] = useState({
     PENDING: 0,
@@ -75,9 +79,28 @@ function Home() {
 
       setBookingStat(stat);
     };
+    const fetchBanner = async () => {
+      try {
+        const ref = doc(db, "app_settings", "home_banner");
+        const snap = await getDoc(ref);
+
+        if (snap.exists()) {
+          const val = snap.data();
+          setBannerData(val);
+
+          // ✅ munculin popup kalau aktif
+          if (val.isActive) {
+            setShowBannerPopup(true);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal ambil banner:", err);
+      }
+    };
 
     fetchDashboardData();
     fetchRole();
+    fetchBanner();
   }, []);
 
   return (
@@ -86,7 +109,7 @@ function Home() {
 
       <div className="home-container">
         {/* 🔷 BANNER */}
-        <img src={banner} alt="Banner" className="home-banner" />
+        <BannerPopup open={showBannerPopup} bannerData={bannerData} onClose={() => setShowBannerPopup(false)} />
 
         {/* 🔷 STATUS KETERSEDIAAN */}
         <div className="card status-card">

@@ -61,6 +61,9 @@ function AdminSidebar({ sidebarOpen, mobileOpen, onCloseMobile }) {
           <div className={`submenu-item ${isActive("/admin/master/room") ? "active-submenu" : ""}`} onClick={() => go("/admin/master/room")}>
             Ruangan
           </div>
+          <div className={`submenu-item ${isActive("/admin/banner-home") ? "active-submenu" : ""}`} onClick={() => go("/admin/banner-home")}>
+            Banner
+          </div>
         </div>
 
         {/* PERIZINAN */}
