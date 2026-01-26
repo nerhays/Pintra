@@ -57,12 +57,16 @@ function RoomBooking() {
 
       // rooms
       const snapRooms = await getDocs(collection(db, "rooms"));
-      setRooms(
-        snapRooms.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })),
-      );
+
+      const allRooms = snapRooms.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // ✅ FIX: hanya room yang available boleh muncul
+      const onlyAvailableRooms = allRooms.filter((r) => r.status === "available");
+
+      setRooms(onlyAvailableRooms);
     };
 
     fetchData();
@@ -72,6 +76,15 @@ function RoomBooking() {
   const checkAvailability = async () => {
     if (!selectedRoom || !selectedDate) {
       setAvailableTimes([]);
+      return;
+    }
+
+    // ✅ double safety: pastikan room masih available
+    const roomSelected = rooms.find((r) => r.id === selectedRoom);
+    if (!roomSelected) {
+      setSelectedRoom("");
+      setAvailableTimes([]);
+      alert("❌ Ruangan tidak tersedia / sudah nonaktif.");
       return;
     }
 
@@ -86,8 +99,9 @@ function RoomBooking() {
       const blockedStatuses = ["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVED"];
       if (!blockedStatuses.includes(data.status)) return;
 
-      const start = data.waktuMulai.toDate();
-      const end = data.waktuSelesai.toDate();
+      const start = data.waktuMulai?.toDate?.();
+      const end = data.waktuSelesai?.toDate?.();
+      if (!start || !end) return;
 
       const bookingDate = start.toISOString().split("T")[0];
       if (bookingDate !== selectedDate) return;
@@ -112,7 +126,9 @@ function RoomBooking() {
     checkAvailability();
     setJamMulai("");
     setJamSelesai("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoom, selectedDate]);
+
   function getValidEndTimes(jamMulai, availableTimes, timeSlots) {
     if (!jamMulai) return [];
 
@@ -145,6 +161,7 @@ function RoomBooking() {
         <div className="room-filter">
           <select value={selectedRoom} onChange={(e) => setSelectedRoom(e.target.value)}>
             <option value="">Pilih Ruangan</option>
+
             {rooms.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.namaRuang}

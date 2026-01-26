@@ -24,7 +24,6 @@ function VehicleBooking() {
       if (!auth.currentUser) return;
 
       const q = query(collection(db, "users"), where("email", "==", auth.currentUser.email));
-
       const snapshot = await getDocs(q);
 
       if (!snapshot.empty) {
@@ -52,10 +51,13 @@ function VehicleBooking() {
 
     // 1️⃣ Ambil semua kendaraan
     const vehicleSnap = await getDocs(collection(db, "vehicles"));
-    const allVehicles = vehicleSnap.docs.map((d) => ({
+    const allVehiclesRaw = vehicleSnap.docs.map((d) => ({
       id: d.id,
       ...d.data(),
     }));
+
+    // ✅ FIX: hanya kendaraan aktif yang boleh dibooking
+    const allVehicles = allVehiclesRaw.filter((v) => v.statusAktif === true);
 
     // 2️⃣ Ambil semua booking kendaraan
     const bookingSnap = await getDocs(collection(db, "vehicle_bookings"));
@@ -64,16 +66,15 @@ function VehicleBooking() {
       ...d.data(),
     }));
 
-    // 3️⃣ Filter kendaraan tersedia
+    // 3️⃣ Filter kendaraan tersedia (tidak bentrok)
     const availableVehicles = allVehicles.filter((vehicle) => {
-      // ✅ FIX: ambil booking yg sesuai kendaraan ini
       const BLOCKING_STATUS = ["APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "APPROVED", "ON_GOING"];
 
       const relatedBookings = bookings.filter((b) => b.vehicle?.vehicleId === vehicle.id && BLOCKING_STATUS.includes(b.status));
 
       for (const booking of relatedBookings) {
-        const bStart = booking.waktuPinjam?.toDate();
-        const bEnd = booking.waktuKembali?.toDate();
+        const bStart = booking.waktuPinjam?.toDate?.();
+        const bEnd = booking.waktuKembali?.toDate?.();
 
         if (!bStart || !bEnd) continue;
 
