@@ -94,7 +94,9 @@ function RoomHistoryDetail() {
           <p>
             <b>Kapasitas:</b> {room?.kapasitas || "-"}
           </p>
-
+          <p>
+            <b>Peserta:</b> {data?.peserta || "-"}
+          </p>
           <p>
             <b>Tanggal:</b> {data.waktuMulai?.toDate ? data.waktuMulai.toDate().toLocaleDateString() : "-"}
           </p>
