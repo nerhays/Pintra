@@ -142,11 +142,46 @@ function PublicRoomApproval() {
 
             <div>
               <label style={{ display: "block", fontSize: 12, color: "#6c757d", marginBottom: 4, fontWeight: 600 }}>WAKTU</label>
-              <p style={{ margin: 0, fontSize: 14, color: "#212529" }}>📅 {new Date(data?.waktuMulai?.seconds * 1000).toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
-              <p style={{ margin: "4px 0 0 0", fontSize: 14, color: "#212529" }}>
-                🕐 {new Date(data?.waktuMulai?.seconds * 1000).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} -{" "}
-                {new Date(data?.waktuSelesai?.seconds * 1000).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-              </p>
+              {data && data.waktuMulai && data.waktuSelesai && (
+                <>
+                  {(() => {
+                    // ✅ Parse dari Firestore timestamp format
+                    const start = new Date(data.waktuMulai.seconds * 1000);
+                    const end = new Date(data.waktuSelesai.seconds * 1000);
+
+                    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                      return <p style={{ color: "#f44336", margin: 0, fontSize: 14 }}>Format tanggal tidak valid</p>;
+                    }
+
+                    return (
+                      <>
+                        <p style={{ margin: 0, fontSize: 14, color: "#212529" }}>
+                          📅{" "}
+                          {start.toLocaleDateString("id-ID", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
+
+                        <p style={{ margin: "4px 0 0 0", fontSize: 14, color: "#212529" }}>
+                          🕐{" "}
+                          {start.toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}{" "}
+                          -{" "}
+                          {end.toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </>
+              )}
             </div>
           </div>
 

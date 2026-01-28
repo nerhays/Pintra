@@ -29,6 +29,7 @@ import VehicleCheckin from "./pages/vehicle/VehicleCheckin";
 import RoomHistoryDetail from "./components/riwayat/RoomHistoryDetail";
 import RoomDisplay from "./pages/room/RoomDisplay";
 import PublicRoomApproval from "./pages/approval/PublicRoomApproval";
+import PublicVehicleApproval from "./pages/approval/PublicVehicleApproval";
 function App() {
   return (
     <BrowserRouter>
@@ -218,6 +219,7 @@ function App() {
           }
         />
         <Route path="/approval/room" element={<PublicRoomApproval />} />
+        <Route path="/approval/vehicle" element={<PublicVehicleApproval />} />
       </Routes>
     </BrowserRouter>
   );

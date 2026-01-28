@@ -111,19 +111,19 @@ function VehicleBookingForm() {
 
       setLoadingSubmit(true);
 
-      // ✅ convert waktu dari string ke Date
       const startDate = new Date(start);
       const endDate = new Date(end);
 
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         alert("Format tanggal tidak valid");
+        setLoadingSubmit(false);
         return;
       }
 
       const now = Timestamp.now();
 
-      const roleBorrower = (userProfile.role || "").toLowerCase(); // admin/operator/user
-      const jabatanBorrower = (userProfile.jabatan || "").toLowerCase(); // manager/staff
+      const roleBorrower = (userProfile.role || "").toLowerCase();
+      const jabatanBorrower = (userProfile.jabatan || "").toLowerCase();
 
       const isAdminBorrower = roleBorrower === "admin";
       const isManagerBorrower = jabatanBorrower === "manager";
@@ -135,64 +135,20 @@ function VehicleBookingForm() {
 
         if (!manager) {
           alert("Manager divisi tidak ditemukan. Pastikan ada user jabatan=manager pada divisi ini.");
+          setLoadingSubmit(false);
           return;
         }
       }
 
-      /**
-       * ✅ STATUS FLOW (samakan room)
-       * - admin -> APPROVED (langsung boleh dipakai)
-       * - manager -> APPROVAL_2 (manager auto approve, lanjut operator)
-       * - staff/user -> APPROVAL_1 (waiting manager)
-       */
+      // ✅ STATUS FLOW
       let initialStatus = "APPROVAL_1";
       if (isAdminBorrower) initialStatus = "APPROVED";
       else if (isManagerBorrower) initialStatus = "APPROVAL_2";
 
-      /**
-       * ✅ approval map (samakan room structure)
-       */
-      const approval = {
-        manager:
-          isAdminBorrower || isManagerBorrower
-            ? {
-                uid: auth.currentUser.uid,
-                nama: userProfile.nama || "-",
-                email: userProfile.email || auth.currentUser.email,
-                status: "APPROVED",
-                approvedAt: now,
-              }
-            : {
-                uid: manager.uid,
-                nama: manager.nama || "-",
-                email: manager.email || "-",
-                status: "PENDING",
-                approvedAt: null,
-              },
-
-        operator: {
-          uid: "-",
-          nama: "-",
-          email: "-",
-          status: isAdminBorrower ? "APPROVED" : "WAITING",
-          approvedAt: isAdminBorrower ? now : null,
-        },
-
-        admin: {
-          uid: "-",
-          nama: "-",
-          email: "-",
-          status: isAdminBorrower ? "APPROVED" : "WAITING",
-          approvedAt: isAdminBorrower ? now : null,
-        },
-      };
-
-      // ✅ booking payload final
+      // ✅ booking payload (TANPA nested approval object)
       const payload = {
         peminjamId: auth.currentUser.uid,
         emailPeminjam: auth.currentUser.email,
-
-        // ✅ snapshot user
         namaPeminjam: userProfile.nama || "-",
         nipp: userProfile.nipp || "-",
         jabatan: jabatanBorrower || "-",
@@ -215,15 +171,23 @@ function VehicleBookingForm() {
           jenis: vehicle?.jenis || "-",
         },
 
-        approval,
         status: initialStatus,
         createdAt: now,
         updatedAt: now,
 
-        // ✅ tracking approval terakhir
         lastApprovalBy: userProfile.nama || auth.currentUser.email,
         lastApprovalJabatan: jabatanBorrower || "-",
         lastApprovalRole: roleBorrower || "user",
+
+        // ✅ TAMBAHAN: Info manager untuk WA (jika ada)
+        ...(manager && {
+          managerInfo: {
+            uid: manager.uid,
+            nama: manager.nama || "-",
+            email: manager.email || "-",
+            noTelp: manager.noTelp || "-", // ✅ PENTING!
+          },
+        }),
       };
 
       const docRef = await addDoc(collection(db, "vehicle_bookings"), payload);
@@ -240,6 +204,25 @@ function VehicleBookingForm() {
         note: "Pengajuan kendaraan dibuat",
         timestamp: now,
       });
+
+      // 🔥 KIRIM WA KE MANAGER (kalau bukan admin/manager)
+      if (!isAdminBorrower && !isManagerBorrower) {
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
+        try {
+          await fetch(`${API_URL}/approval/vehicle/manager/send`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bookingId: docRef.id,
+            }),
+          });
+          console.log("✅ WA approval sent to manager");
+        } catch (err) {
+          console.error("❌ Error sending WA:", err);
+          // Tidak perlu alert, biarkan booking tetap jalan
+        }
+      }
 
       // ✅ notif sesuai role
       if (isAdminBorrower) {

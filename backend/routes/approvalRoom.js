@@ -3,7 +3,22 @@ const router = express.Router();
 
 const admin = require("firebase-admin");
 const db = admin.firestore();
-
+function toWIBISOString(timestamp) {
+  return new Date(
+    timestamp.toDate().toLocaleString("en-US", {
+      timeZone: "Asia/Jakarta",
+    }),
+  ).toISOString();
+}
+const formatWIB = (ts) =>
+  ts.toDate().toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 // ✅ IMPORT SEMUA FUNGSI YANG DIBUTUHKAN
 const { createApprovalToken, verifyApprovalToken, markTokenUsed } = require("../services/tokenService");
 const { sendWhatsApp } = require("../services/waService");
@@ -50,8 +65,8 @@ Yth. ${manager.nama},
 - Peserta: ${booking.peserta}
 
 📅 *Jadwal*
-- ${booking.waktuMulai.toDate().toLocaleString("id-ID")} 
-- s/d ${booking.waktuSelesai.toDate().toLocaleString("id-ID")}
+- ${formatWIB(booking.waktuMulai)} 
+- s/d ${formatWIB(booking.waktuSelesai)}
 
 👉 *Approve / Reject:*
 ${link}
@@ -93,8 +108,8 @@ router.get("/approval/room/verify", async (req, res) => {
       namaKegiatan: booking.namaKegiatan,
       peminjam: booking.peminjam,
       peserta: booking.peserta,
-      waktuMulai: booking.waktuMulai,
-      waktuSelesai: booking.waktuSelesai,
+      waktuMulai: toWIBISOString(booking.waktuMulai),
+      waktuSelesai: toWIBISOString(booking.waktuSelesai),
     });
   } catch (err) {
     console.error("❌ VERIFY ERROR:", err);
