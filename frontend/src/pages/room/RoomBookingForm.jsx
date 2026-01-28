@@ -155,6 +155,7 @@ function RoomBookingForm() {
                 uid: auth.currentUser.uid,
                 nama: userProfile.nama || "-",
                 email: userProfile.email || auth.currentUser.email,
+                noTelp: userProfile.noTelp || "-",
                 status: "APPROVED",
                 approvedAt: now,
               }
@@ -162,6 +163,7 @@ function RoomBookingForm() {
                 uid: manager.uid,
                 nama: manager.nama || "-",
                 email: manager.email || "-",
+                noTelp: manager.noTelp || "-",
                 status: "PENDING",
                 approvedAt: null,
               },
@@ -184,7 +186,7 @@ function RoomBookingForm() {
       };
 
       // ✅ simpan booking
-      await addDoc(collection(db, "room_bookings"), {
+      const docRef = await addDoc(collection(db, "room_bookings"), {
         namaKegiatan,
         jenisRapat,
 
@@ -196,8 +198,6 @@ function RoomBookingForm() {
         peminjam: {
           userId: auth.currentUser.uid,
           email: auth.currentUser.email,
-
-          // ✅ snapshot user
           nama: userProfile.nama || "-",
           nipp: userProfile.nipp || "-",
           divisi: userProfile.divisi || "-",
@@ -213,6 +213,18 @@ function RoomBookingForm() {
         status: initialStatus,
         createdAt: now,
       });
+
+      if (!isAdminBorrower && !isManagerBorrower) {
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
+        await fetch(`${API_URL}/approval/room/manager/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bookingId: docRef.id,
+          }),
+        });
+      }
 
       if (isAdminBorrower) {
         alert("Booking berhasil ✅ (Auto Approved karena akun ADMIN)");

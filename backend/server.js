@@ -1,3 +1,10 @@
+require("dotenv").config();
+
+console.log("ENV CHECK:", {
+  token: process.env.WATZAP_TOKEN,
+  sender: process.env.WATZAP_SENDER,
+});
+
 const express = require("express");
 const cors = require("cors");
 
@@ -14,6 +21,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use(require("./routes/approvalRoom"));
 /**
  * ✅ TEST ROUTE
  */
@@ -90,6 +98,19 @@ app.delete("/admin/users/:uid", async (req, res) => {
     return res.status(500).json({
       message: err.message,
     });
+  }
+});
+const { sendWhatsApp } = require("./services/waService");
+
+app.get("/test/wa", async (req, res) => {
+  try {
+    await sendWhatsApp({
+      phone: "6281335420048",
+      message: "✅ TEST WA PINTRA BERHASIL",
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
