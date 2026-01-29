@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
 import AdminLayout from "../../../components/admin/AdminLayout";
 import "./Monitoring.css";
@@ -9,10 +9,7 @@ import { exportToPDF, exportToExcel } from "../../../utils/exportHelper";
 const getMonitoringStatus = (approval) => {
   if (!approval) return "WAITING";
 
-  if (
-    approval.manager?.status === "REJECTED" ||
-    approval.admin?.status === "REJECTED"
-  ) {
+  if (approval.manager?.status === "REJECTED" || approval.operator?.status === "REJECTED" || approval.admin?.status === "REJECTED") {
     return "REJECTED";
   }
 
@@ -20,10 +17,7 @@ const getMonitoringStatus = (approval) => {
     return "ON_GOING";
   }
 
-  if (
-    approval.manager?.status === "APPROVED" &&
-    approval.admin?.status === "APPROVED"
-  ) {
+  if (approval.manager?.status === "APPROVED" && approval.operator?.status === "APPROVED" && approval.admin?.status === "APPROVED") {
     return "APPROVED";
   }
 
@@ -32,7 +26,14 @@ const getMonitoringStatus = (approval) => {
 
 const formatDate = (timestamp) => {
   if (!timestamp || !timestamp.toDate) return "-";
-  return timestamp.toDate().toLocaleString("id-ID");
+  return timestamp.toDate().toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 const addDays = (date, days) => {
@@ -46,35 +47,57 @@ function MonitoringRuang() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [sortOrder, setSortOrder] = useState("desc");
+  const [sortColumn, setSortColumn] = useState("waktuMulai");
+  const [sortDirection, setSortDirection] = useState("desc");
+
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  // ✅ Cache untuk nama ruang
+  const [roomNames, setRoomNames] = useState({});
+
+  // ✅ FETCH NAMA RUANG DARI COLLECTION ROOMS
   useEffect(() => {
-    const q = query(
-      collection(db, "room_bookings"),
-      orderBy("createdAt", "desc")
-    );
+    const fetchRoomNames = async () => {
+      try {
+        const roomsSnap = await getDocs(collection(db, "rooms"));
+        const names = {};
+
+        roomsSnap.docs.forEach((doc) => {
+          names[doc.id] = doc.data().namaRuang || "-";
+        });
+
+        setRoomNames(names);
+        console.log("✅ Room names loaded:", names);
+      } catch (err) {
+        console.error("❌ Error loading room names:", err);
+      }
+    };
+
+    fetchRoomNames();
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, "room_bookings"), orderBy("createdAt", "desc"));
 
     const unsub = onSnapshot(
       q,
       (snapshot) => {
         const data = snapshot.docs.map((doc) => {
           const d = doc.data();
+          const roomId = d.ruang?.roomId || "-";
 
           return {
             id: doc.id,
             namaKegiatan: d.namaKegiatan || "-",
             peminjam: d.peminjam?.nama || "-",
-            ruangId: d.ruang?.roomId || "-",
+            ruangId: roomId,
+            ruangNama: roomNames[roomId] || roomId, // ✅ Gunakan nama dari cache
             status: getMonitoringStatus(d.approval),
             waktuMulai: d.waktuMulai || null,
-            waktu:
-              d.waktuMulai && d.waktuSelesai
-                ? `${formatDate(d.waktuMulai)} – ${formatDate(
-                    d.waktuSelesai
-                  )}`
-                : "-",
+            waktuSelesai: d.waktuSelesai || null,
+            waktuMulaiStr: formatDate(d.waktuMulai),
+            waktuSelesaiStr: formatDate(d.waktuSelesai),
           };
         });
 
@@ -84,11 +107,11 @@ function MonitoringRuang() {
       (error) => {
         console.error("🔥 FIRESTORE ERROR:", error);
         setLoading(false);
-      }
+      },
     );
 
     return () => unsub();
-  }, []);
+  }, [roomNames]); // ✅ Re-fetch saat roomNames berubah
 
   /* ================== FILTER (MAX 7 HARI) ================== */
   const filteredRooms = rooms.filter((item) => {
@@ -103,77 +126,100 @@ function MonitoringRuang() {
     return date >= start && date <= end;
   });
 
-  /* ================== SORT ================== */
+  /* ================== SORT PER KOLOM ================== */
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle direction
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New column, default asc
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
   const sortedRooms = [...filteredRooms].sort((a, b) => {
-    if (!a.waktuMulai || !b.waktuMulai) return 0;
+    let valA, valB;
 
-    const timeA = a.waktuMulai.toMillis();
-    const timeB = b.waktuMulai.toMillis();
+    switch (sortColumn) {
+      case "namaKegiatan":
+        valA = a.namaKegiatan.toLowerCase();
+        valB = b.namaKegiatan.toLowerCase();
+        break;
 
-    return sortOrder === "asc" ? timeA - timeB : timeB - timeA;
+      case "peminjam":
+        valA = a.peminjam.toLowerCase();
+        valB = b.peminjam.toLowerCase();
+        break;
+
+      case "ruang":
+        valA = a.ruangNama.toLowerCase();
+        valB = b.ruangNama.toLowerCase();
+        break;
+
+      case "status":
+        valA = a.status.toLowerCase();
+        valB = b.status.toLowerCase();
+        break;
+
+      case "waktuMulai":
+      default:
+        if (!a.waktuMulai || !b.waktuMulai) return 0;
+        valA = a.waktuMulai.toMillis();
+        valB = b.waktuMulai.toMillis();
+        break;
+    }
+
+    if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+    if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+    return 0;
   });
+
+  /* ================== SORT ICON ================== */
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) return "⇅";
+    return sortDirection === "asc" ? "↑" : "↓";
+  };
 
   return (
     <AdminLayout>
       <div className="monitoring-container">
-        <h2 className="monitoring-title">Monitoring Ruang</h2>
+        <h2 className="monitoring-title">📊 Monitoring Ruang</h2>
 
         {/* ACTION */}
         <div className="monitoring-action">
-          <button
-            className="monitoring-btn pdf"
-            onClick={() => exportToPDF(sortedRooms, "Monitoring Ruang")}
-          >
-            📄 Export PDF
-          </button>
+          <div className="monitoring-btn-group">
+            <button className="monitoring-btn pdf" onClick={() => exportToPDF(sortedRooms, "Monitoring Ruang", roomNames)} disabled={sortedRooms.length === 0}>
+              📄 Export PDF
+            </button>
 
-          <button
-            className="monitoring-btn excel"
-            onClick={() => exportToExcel(sortedRooms, "Monitoring Ruang")}
-          >
-            📊 Export Excel
-          </button>
+            <button className="monitoring-btn excel" onClick={() => exportToExcel(sortedRooms, "Monitoring Ruang", roomNames)} disabled={sortedRooms.length === 0}>
+              📊 Export Excel
+            </button>
+          </div>
 
-          <button
-            className="monitoring-btn sort"
-            onClick={() =>
-              setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-            }
-          >
-            🗓️ {sortOrder === "asc" ? "⬆ Lama → Baru" : "⬇ Baru → Lama"}
-          </button>
-        </div>
+          {/* DATE FILTER */}
+          <div className="monitoring-filter-date">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setEndDate(""); // reset end date
+              }}
+            />
 
-        {/* DATE FILTER */}
-        <div className="monitoring-filter-date">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => {
-              setStartDate(e.target.value);
-              setEndDate(""); // reset end date
-            }}
-          />
+            <span>s/d</span>
 
-          <span>s/d</span>
-
-          <input
-            type="date"
-            value={endDate}
-            min={startDate}
-            max={startDate ? addDays(startDate, 7) : ""}
-            disabled={!startDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+            <input type="date" value={endDate} min={startDate} max={startDate ? addDays(startDate, 7) : ""} disabled={!startDate} onChange={(e) => setEndDate(e.target.value)} />
+          </div>
         </div>
 
         {/* LOADING */}
-        {loading && <p className="monitoring-empty">Memuat data...</p>}
+        {loading && <p className="monitoring-empty">⏳ Memuat data...</p>}
 
         {/* EMPTY */}
-        {!loading && sortedRooms.length === 0 && (
-          <p className="monitoring-empty">Tidak ada data</p>
-        )}
+        {!loading && sortedRooms.length === 0 && <p className="monitoring-empty">{startDate && endDate ? "📭 Tidak ada data untuk rentang tanggal yang dipilih" : "📭 Belum ada data booking ruang"}</p>}
 
         {/* TABLE */}
         {!loading && sortedRooms.length > 0 && (
@@ -181,12 +227,29 @@ function MonitoringRuang() {
             <table className="monitoring-table">
               <thead>
                 <tr>
-                  <th>No</th>
-                  <th>Nama Kegiatan</th>
-                  <th>Peminjam</th>
-                  <th>Ruang</th>
-                  <th>Status</th>
-                  <th>Waktu</th>
+                  <th style={{ width: "60px" }}>No</th>
+
+                  <th className={`sortable ${sortColumn === "namaKegiatan" ? "active" : ""}`} onClick={() => handleSort("namaKegiatan")}>
+                    Nama Kegiatan <span className="sort-icon">{getSortIcon("namaKegiatan")}</span>
+                  </th>
+
+                  <th className={`sortable ${sortColumn === "peminjam" ? "active" : ""}`} onClick={() => handleSort("peminjam")}>
+                    Peminjam <span className="sort-icon">{getSortIcon("peminjam")}</span>
+                  </th>
+
+                  <th className={`sortable ${sortColumn === "ruang" ? "active" : ""}`} onClick={() => handleSort("ruang")}>
+                    Ruang <span className="sort-icon">{getSortIcon("ruang")}</span>
+                  </th>
+
+                  <th className={`sortable ${sortColumn === "status" ? "active" : ""}`} onClick={() => handleSort("status")} style={{ width: "130px" }}>
+                    Status <span className="sort-icon">{getSortIcon("status")}</span>
+                  </th>
+
+                  <th className={`sortable ${sortColumn === "waktuMulai" ? "active" : ""}`} onClick={() => handleSort("waktuMulai")}>
+                    Waktu Mulai <span className="sort-icon">{getSortIcon("waktuMulai")}</span>
+                  </th>
+
+                  <th>Waktu Selesai</th>
                 </tr>
               </thead>
 
@@ -194,17 +257,16 @@ function MonitoringRuang() {
                 {sortedRooms.map((item, index) => (
                   <tr key={item.id}>
                     <td>{index + 1}</td>
-                    <td>{item.namaKegiatan}</td>
-                    <td>{item.peminjam}</td>
-                    <td>{item.ruangId}</td>
                     <td>
-                      <span
-                        className={`status-badge ${item.status.toLowerCase()}`}
-                      >
-                        {item.status}
-                      </span>
+                      <strong>{item.namaKegiatan}</strong>
                     </td>
-                    <td>{item.waktu}</td>
+                    <td>{item.peminjam}</td>
+                    <td>{item.ruangNama}</td>
+                    <td>
+                      <span className={`status-badge ${item.status.toLowerCase()}`}>{item.status}</span>
+                    </td>
+                    <td>{item.waktuMulaiStr}</td>
+                    <td>{item.waktuSelesaiStr}</td>
                   </tr>
                 ))}
               </tbody>
