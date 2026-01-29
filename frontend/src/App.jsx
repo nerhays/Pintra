@@ -30,6 +30,10 @@ import RoomHistoryDetail from "./components/riwayat/RoomHistoryDetail";
 import RoomDisplay from "./pages/room/RoomDisplay";
 import PublicRoomApproval from "./pages/approval/PublicRoomApproval";
 import PublicVehicleApproval from "./pages/approval/PublicVehicleApproval";
+
+import MonitoringRuang from "./pages/admin/monitoring/MonitoringRuang";
+import MonitoringKendaraan from "./pages/admin/monitoring/MonitoringKendaraan";
+
 function App() {
   return (
     <BrowserRouter>
@@ -220,6 +224,24 @@ function App() {
         />
         <Route path="/approval/room" element={<PublicRoomApproval />} />
         <Route path="/approval/vehicle" element={<PublicVehicleApproval />} />
+         {/* ================= MONITORING ================= */}
+        <Route
+          path="/admin/monitoring/ruang"
+          element={
+            <AdminRoute>
+              <MonitoringRuang />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/monitoring/kendaraan"
+          element={
+            <AdminRoute>
+              <MonitoringKendaraan />
+            </AdminRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
