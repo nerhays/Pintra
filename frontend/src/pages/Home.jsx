@@ -13,7 +13,7 @@ import gym from "../assets/gym.png";
 
 import BannerPopup from "../components/BannerPopup";
 import "./Home.css";
-
+import { checkAndUpdateBookingStatuses } from "../utils/updateBookingStatus";
 function Home() {
   const navigate = useNavigate();
 
@@ -86,48 +86,26 @@ function Home() {
       allBookings.forEach((b) => {
         const s = b.status;
 
-        /* =========================
-           ✅ ROOM BOOKING STATUS
-           WAITING_MANAGER / OPERATOR / ADMIN
-           APPROVED (bisa dipakai)
-           REJECTED
-        ========================= */
-        if (s === "WAITING_MANAGER" || s === "WAITING_OPERATOR" || s === "WAITING_ADMIN") {
+        // WAITING APPROVAL
+        if (["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "SUBMITTED"].includes(s)) {
           stat.WAITING_APPROVAL++;
           return;
         }
 
-        if (s === "APPROVED") {
-          // ✅ ruang sudah bisa dipakai → masuk ON_GOING
+        // ON GOING (termasuk APPROVED yang belum dimulai)
+        if (["APPROVED", "ON_GOING"].includes(s)) {
           stat.ON_GOING++;
           return;
         }
 
-        if (s === "REJECTED") {
-          stat.REJECTED++;
-          return;
-        }
-
-        /* =========================
-           ✅ VEHICLE BOOKING STATUS
-           (sesuaikan dengan sistemmu)
-        ========================= */
-        if (s === "SUBMITTED" || s === "APPROVAL_1" || s === "WAITING_APPROVAL") {
-          stat.WAITING_APPROVAL++;
-          return;
-        }
-
-        if (s === "ON_GOING") {
-          stat.ON_GOING++;
-          return;
-        }
-
-        if (s === "DONE" || s === "COMPLETED") {
+        // DONE
+        if (["DONE", "COMPLETED"].includes(s)) {
           stat.DONE++;
           return;
         }
 
-        if (s === "CANCELLED") {
+        // REJECTED
+        if (["REJECTED", "CANCELLED"].includes(s)) {
           stat.REJECTED++;
           return;
         }
@@ -153,10 +131,29 @@ function Home() {
         console.error("Gagal ambil banner:", err);
       }
     };
+    const init = async () => {
+      console.log("🏠 Initializing Home page...");
 
-    fetchDashboardData();
-    fetchRole();
-    fetchBanner();
+      // ✅ CEK & UPDATE STATUS DULU
+      const updateResult = await checkAndUpdateBookingStatuses();
+
+      if (updateResult.success) {
+        console.log("✅ Status update result:", updateResult);
+
+        if (updateResult.roomUpdated > 0 || updateResult.vehicleUpdated > 0) {
+          console.log(`🔄 Updated ${updateResult.roomUpdated} rooms and ${updateResult.vehicleUpdated} vehicles`);
+        }
+      }
+
+      // Baru fetch data
+      await fetchDashboardData();
+      await fetchRole();
+      await fetchBanner();
+
+      console.log("✅ Home page initialized");
+    };
+
+    init();
   }, []);
 
   return (
