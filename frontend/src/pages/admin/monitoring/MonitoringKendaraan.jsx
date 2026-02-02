@@ -50,10 +50,8 @@ function MonitoringKendaraan() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // ✅ Cache untuk nama kendaraan
   const [vehicleNames, setVehicleNames] = useState({});
 
-  // ✅ FETCH NAMA KENDARAAN DARI COLLECTION VEHICLES
   useEffect(() => {
     const fetchVehicleNames = async () => {
       try {
@@ -90,6 +88,14 @@ function MonitoringKendaraan() {
           const vehicleId = d.vehicle?.vehicleId || "-";
           const vehicleInfo = vehicleNames[vehicleId] || {};
 
+          // ✅ DEBUG: Log tracking data
+          console.log(`📊 Booking ${doc.id}:`, {
+            status: d.status,
+            tracking: d.tracking,
+            hasTracking: !!d.tracking,
+            hasLastLocation: !!d.tracking?.lastLocation,
+          });
+
           return {
             id: doc.id,
             namaPeminjam: d.namaPeminjam || "-",
@@ -111,8 +117,11 @@ function MonitoringKendaraan() {
             waktuPinjamStr: formatDate(d.waktuPinjam),
             waktuKembaliStr: formatDate(d.waktuKembali),
 
-            // ✅ Lokasi tracking (bisa ditambahkan nanti)
-            currentLocation: d.currentLocation || null,
+            // ✅ TRACKING DATA (raw dari Firestore)
+            tracking: d.tracking || null,
+            trackingEnabled: d.tracking?.enabled || false,
+            lastLocation: d.tracking?.lastLocation || null,
+            lastLocationUpdated: d.tracking?.lastUpdated || null,
           };
         });
 
@@ -128,7 +137,7 @@ function MonitoringKendaraan() {
     return () => unsub();
   }, [vehicleNames]);
 
-  /* ================== FILTER (MAX 7 HARI) ================== */
+  /* ================== FILTER ================== */
   const filteredVehicles = vehicles.filter((item) => {
     if (!item.waktuPinjam) return false;
     if (!startDate || !endDate) return true;
@@ -141,7 +150,7 @@ function MonitoringKendaraan() {
     return date >= start && date <= end;
   });
 
-  /* ================== SORT PER KOLOM ================== */
+  /* ================== SORT ================== */
   const handleSort = (column) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -203,7 +212,6 @@ function MonitoringKendaraan() {
       <div className="monitoring-container">
         <h2 className="monitoring-title">🚗 Monitoring Kendaraan</h2>
 
-        {/* ACTION */}
         <div className="monitoring-action">
           <div className="monitoring-btn-group">
             <button className="monitoring-btn pdf" onClick={() => exportVehicleToPDF(sortedVehicles, "Monitoring Kendaraan")} disabled={sortedVehicles.length === 0}>
@@ -215,7 +223,6 @@ function MonitoringKendaraan() {
             </button>
           </div>
 
-          {/* DATE FILTER */}
           <div className="monitoring-filter-date">
             <input
               type="date"
@@ -232,13 +239,10 @@ function MonitoringKendaraan() {
           </div>
         </div>
 
-        {/* LOADING */}
         {loading && <p className="monitoring-empty">⏳ Memuat data...</p>}
 
-        {/* EMPTY */}
         {!loading && sortedVehicles.length === 0 && <p className="monitoring-empty">{startDate && endDate ? "📭 Tidak ada data untuk rentang tanggal yang dipilih" : "📭 Belum ada data booking kendaraan"}</p>}
 
-        {/* TABLE */}
         {!loading && sortedVehicles.length > 0 && (
           <div className="monitoring-table-wrapper">
             <table className="monitoring-table">
@@ -272,60 +276,113 @@ function MonitoringKendaraan() {
 
                   <th>Waktu Kembali</th>
 
-                  <th style={{ width: "100px" }}>Lokasi</th>
+                  <th style={{ width: "140px" }}>Lokasi</th>
                 </tr>
               </thead>
 
               <tbody>
-                {sortedVehicles.map((item, index) => (
-                  <tr key={item.id}>
-                    <td>{index + 1}</td>
+                {sortedVehicles.map((item, index) => {
+                  // ✅ Calculate time since last update
+                  const lastUpdated = item.lastLocationUpdated?.toDate?.();
+                  const minutesSinceUpdate = lastUpdated ? Math.floor((new Date() - lastUpdated) / 60000) : null;
 
-                    <td>
-                      <strong>{item.namaPeminjam}</strong>
-                    </td>
+                  return (
+                    <tr key={item.id}>
+                      <td>{index + 1}</td>
 
-                    <td>{item.divisi}</td>
+                      <td>
+                        <strong>{item.namaPeminjam}</strong>
+                      </td>
 
-                    <td>
-                      <strong>{item.vehicleNama}</strong>
-                      <br />
-                      <small style={{ color: "#6b7280" }}>
-                        {item.vehiclePlat} • {item.vehicleJenis}
-                      </small>
-                    </td>
+                      <td>{item.divisi}</td>
 
-                    <td>{item.tujuan}</td>
+                      <td>
+                        <strong>{item.vehicleNama}</strong>
+                        <br />
+                        <small style={{ color: "#6b7280" }}>
+                          {item.vehiclePlat} • {item.vehicleJenis}
+                        </small>
+                      </td>
 
-                    <td>
-                      <span className={`status-badge ${item.statusBadge.class}`}>{item.statusBadge.label}</span>
-                    </td>
+                      <td>{item.tujuan}</td>
 
-                    <td>{item.waktuPinjamStr}</td>
-                    <td>{item.waktuKembaliStr}</td>
+                      <td>
+                        <span className={`status-badge ${item.statusBadge.class}`}>{item.statusBadge.label}</span>
+                      </td>
 
-                    <td style={{ textAlign: "center" }}>
-                      {item.currentLocation ? (
-                        <a
-                          href={`https://www.google.com/maps?q=${item.currentLocation.lat},${item.currentLocation.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            color: "#3b82f6",
-                            textDecoration: "none",
-                            fontWeight: 600,
-                            fontSize: "18px",
-                          }}
-                          title="Lihat di Google Maps"
-                        >
-                          📍
-                        </a>
-                      ) : (
-                        <span style={{ color: "#9ca3af" }}>-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      <td>{item.waktuPinjamStr}</td>
+                      <td>{item.waktuKembaliStr}</td>
+
+                      {/* ✅ KOLOM LOKASI - FIXED */}
+                      <td style={{ textAlign: "center" }}>
+                        {item.status === "ON_GOING" && item.lastLocation ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 6,
+                              alignItems: "center",
+                            }}
+                          >
+                            <a
+                              href={`https://www.google.com/maps?q=${item.lastLocation.lat},${item.lastLocation.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                padding: "6px 12px",
+                                background: "linear-gradient(135deg, #4CAF50, #45a049)",
+                                color: "white",
+                                textDecoration: "none",
+                                borderRadius: 6,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                                transition: "all 0.2s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.transform = "translateY(-2px)";
+                                e.target.style.boxShadow = "0 4px 8px rgba(0,0,0,0.15)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.transform = "translateY(0)";
+                                e.target.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+                              }}
+                            >
+                              📍 Lihat Lokasi
+                            </a>
+
+                            {minutesSinceUpdate !== null && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  color: minutesSinceUpdate > 30 ? "#d9534f" : "#5cb85c",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {minutesSinceUpdate < 1 ? "Baru saja" : `${minutesSinceUpdate} mnt lalu`}
+                              </span>
+                            )}
+                          </div>
+                        ) : item.status === "ON_GOING" && !item.lastLocation ? (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: "#856404",
+                              background: "#fff3cd",
+                              padding: "4px 8px",
+                              borderRadius: 4,
+                              display: "inline-block",
+                            }}
+                          >
+                            Belum update
+                          </span>
+                        ) : (
+                          <span style={{ color: "#9ca3af" }}>-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

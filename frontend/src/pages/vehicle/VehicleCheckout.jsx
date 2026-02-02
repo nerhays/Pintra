@@ -34,6 +34,10 @@ function VehicleCheckout() {
   // ✅ multi foto
   const [fotoBase64List, setFotoBase64List] = useState([]);
 
+  // ✅ NEW: Location tracking
+  const [locationPermission, setLocationPermission] = useState(null); // null, 'granted', 'denied'
+  const [currentLocation, setCurrentLocation] = useState(null);
+
   const fetchDetail = async () => {
     try {
       setLoading(true);
@@ -53,6 +57,61 @@ function VehicleCheckout() {
     fetchDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookingId]);
+
+  // ✅ CEK PERMISSION GEOLOCATION SAAT MOUNT
+  useEffect(() => {
+    if (navigator.geolocation) {
+      // Test permission
+      navigator.permissions?.query({ name: "geolocation" }).then((result) => {
+        setLocationPermission(result.state);
+      });
+    } else {
+      alert("⚠️ Browser Anda tidak mendukung Geolocation. Tracking tidak akan aktif.");
+    }
+  }, []);
+
+  // ✅ REQUEST LOCATION PERMISSION & GET CURRENT LOCATION
+  const requestLocationPermission = () => {
+    if (!navigator.geolocation) {
+      alert("Browser tidak support Geolocation");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        };
+
+        setCurrentLocation(loc);
+        setLocationPermission("granted");
+
+        alert("✅ Lokasi berhasil diambil! Tracking akan aktif saat peminjaman dimulai.");
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        setLocationPermission("denied");
+
+        let message = "Tidak bisa mendapatkan lokasi. ";
+        if (error.code === 1) {
+          message += "Anda menolak akses lokasi. Mohon izinkan akses lokasi di pengaturan browser.";
+        } else if (error.code === 2) {
+          message += "Lokasi tidak tersedia.";
+        } else {
+          message += "Timeout.";
+        }
+
+        alert(message);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      },
+    );
+  };
 
   // ✅ convert file -> pure base64 string
   const handlePhotoChange = async (e) => {
@@ -91,25 +150,16 @@ function VehicleCheckout() {
     setKelengkapanItems((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  /**
-   * ✅ Ini FIX UTAMA biar gak ada invalid nested entity
-   * - remove undefined
-   * - ubah NaN -> null
-   * - pastikan array/object aman
-   */
   const sanitizeForFirestore = (value) => {
     if (value === undefined) return null;
     if (typeof value === "number" && Number.isNaN(value)) return null;
 
-    // Timestamp aman
     if (value instanceof Timestamp) return value;
 
-    // array
     if (Array.isArray(value)) {
       return value.map((v) => sanitizeForFirestore(v)).filter((v) => v !== null);
     }
 
-    // object
     if (value && typeof value === "object") {
       const cleaned = {};
       Object.entries(value).forEach(([k, v]) => {
@@ -119,7 +169,6 @@ function VehicleCheckout() {
       return cleaned;
     }
 
-    // primitive
     return value;
   };
 
@@ -150,6 +199,13 @@ function VehicleCheckout() {
       return;
     }
 
+    // ✅ VALIDASI LOKASI
+    if (locationPermission !== "granted" || !currentLocation) {
+      const confirm = window.confirm("⚠️ Tracking lokasi belum aktif. Lanjutkan tanpa tracking?\n\n" + "Klik 'Cancel' untuk mengaktifkan tracking lokasi terlebih dahulu.");
+
+      if (!confirm) return;
+    }
+
     if (saving) return;
     setSaving(true);
 
@@ -157,36 +213,37 @@ function VehicleCheckout() {
       const now = Timestamp.now();
       const ref = doc(db, "vehicle_bookings", bookingId);
 
-      // ✅ payload awal (raw)
       const rawKondisiAwal = {
         filledBy: auth.currentUser.uid,
         filledByName: data.namaPeminjam || data.emailPeminjam || "-",
-
-        // ✅ multi foto
         fotoBase64List: fotoBase64List,
         fotoTimestamp: now,
-
         kelengkapan: kelengkapan,
         kelengkapanItems: kelengkapanItems,
-
         kondisi: kondisi,
         odometerAwal: odo,
         sisaBBM: sisaBBM,
-
         timestamp: now,
-
         uraianKelengkapan: uraianKelengkapan?.trim() || "-",
         uraianKondisi: uraianKondisi?.trim() || "-",
       };
 
-      // ✅ CLEAN payload dulu
       const payloadKondisiAwal = sanitizeForFirestore(rawKondisiAwal);
 
+      // ✅ UPDATE BOOKING WITH TRACKING INFO
       await updateDoc(ref, {
         kondisiAwal: payloadKondisiAwal,
         actualPickupTime: now,
         status: "ON_GOING",
         updatedAt: now,
+
+        // ✅ TRACKING INFO
+        tracking: {
+          enabled: locationPermission === "granted",
+          startLocation: currentLocation || null,
+          lastLocation: currentLocation || null,
+          lastUpdated: now,
+        },
       });
 
       await addDoc(collection(db, "vehicle_bookings", bookingId, "approval_history"), {
@@ -197,13 +254,14 @@ function VehicleCheckout() {
         note: "Kendaraan diambil & kondisi awal dicatat",
         timestamp: now,
         userId: auth.currentUser.uid,
-
         odometerAwal: odo,
         sisaBBM: sisaBBM,
       });
 
-      alert("✅ Berhasil checkout. Status jadi ON_GOING");
-      navigate(`/riwayat/kendaraan/${bookingId}`);
+      alert("✅ Berhasil checkout. Status jadi ON_GOING\n\n" + (locationPermission === "granted" ? "📍 Tracking lokasi AKTIF. Mohon jaga HP tetap online selama perjalanan." : "⚠️ Tracking lokasi TIDAK AKTIF."));
+
+      // ✅ REDIRECT KE TRACKING PAGE (bukan riwayat)
+      navigate(`/vehicle/tracking/${bookingId}`);
     } catch (err) {
       console.error(err);
       alert("❌ Gagal checkout: " + err.message);
@@ -228,6 +286,58 @@ function VehicleCheckout() {
         <p>
           Kendaraan: <b>{data.vehicle?.nama || "-"}</b> • <b>{data.vehicle?.platNomor || "-"}</b>
         </p>
+
+        {/* ✅ LOCATION PERMISSION BOX */}
+        <div
+          style={{
+            background: locationPermission === "granted" ? "#d4edda" : "#fff3cd",
+            border: `1px solid ${locationPermission === "granted" ? "#c3e6cb" : "#ffc107"}`,
+            padding: 16,
+            borderRadius: 8,
+            marginBottom: 20,
+          }}
+        >
+          <h4 style={{ margin: "0 0 8px 0" }}>📍 Tracking Lokasi Real-Time</h4>
+
+          {locationPermission === null && <p style={{ margin: 0 }}>Mengecek permission...</p>}
+
+          {locationPermission === "granted" && currentLocation && (
+            <>
+              <p style={{ margin: 0, color: "#155724" }}>
+                ✅ <strong>Tracking AKTIF</strong>
+              </p>
+              <p style={{ margin: "4px 0 0 0", fontSize: 14, color: "#155724" }}>
+                Lokasi saat ini: {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
+              </p>
+              <a href={`https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: "#007bff" }}>
+                🗺️ Lihat di Maps
+              </a>
+            </>
+          )}
+
+          {locationPermission !== "granted" && (
+            <>
+              <p style={{ margin: "0 0 12px 0", color: "#856404" }}>⚠️ Tracking lokasi belum aktif. Klik tombol di bawah untuk mengaktifkan.</p>
+              <button
+                onClick={requestLocationPermission}
+                style={{
+                  padding: "10px 20px",
+                  background: "#007bff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                📍 Aktifkan Tracking Lokasi
+              </button>
+              <p style={{ margin: "12px 0 0 0", fontSize: 13, color: "#666" }}>
+                <strong>Penting:</strong> Tracking lokasi diperlukan agar admin dapat memantau perjalanan kendaraan secara real-time. Mohon izinkan akses lokasi saat browser meminta permission.
+              </p>
+            </>
+          )}
+        </div>
 
         <div className="checkout-card">
           <div className="form-group">
@@ -304,8 +414,15 @@ function VehicleCheckout() {
             )}
           </div>
 
-          <button disabled={saving} onClick={submitCheckout} style={{ marginTop: 10 }}>
-            {saving ? "Menyimpan..." : "✅ Simpan & Mulai Peminjaman"}
+          <button
+            disabled={saving}
+            onClick={submitCheckout}
+            style={{
+              marginTop: 10,
+              opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {saving ? "⏳ Menyimpan..." : "✅ Simpan & Mulai Peminjaman"}
           </button>
         </div>
       </div>

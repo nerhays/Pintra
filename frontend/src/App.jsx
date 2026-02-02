@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import VehicleTracking from "./pages/vehicle/VehicleTracking";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import RoomBooking from "./pages/room/RoomBooking";
@@ -224,7 +224,7 @@ function App() {
         />
         <Route path="/approval/room" element={<PublicRoomApproval />} />
         <Route path="/approval/vehicle" element={<PublicVehicleApproval />} />
-         {/* ================= MONITORING ================= */}
+        {/* ================= MONITORING ================= */}
         <Route
           path="/admin/monitoring/ruang"
           element={
@@ -239,6 +239,14 @@ function App() {
           element={
             <AdminRoute>
               <MonitoringKendaraan />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/vehicle/tracking/:bookingId"
+          element={
+            <AdminRoute>
+              <VehicleTracking />
             </AdminRoute>
           }
         />
