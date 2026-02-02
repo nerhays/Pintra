@@ -244,45 +244,19 @@ function VehicleBooking() {
 
         {/* ✅ HASIL PENCARIAN */}
         {searched && !loadingCheck && (
-          <div className="vehicle-list">
-            {vehicles.length === 0 ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  padding: "40px 20px",
-                  background: userHasBookedToday ? "#fff3cd" : "#f8d7da",
-                  border: userHasBookedToday ? "1px solid #ffc107" : "1px solid #f5c2c7",
-                  borderRadius: 8,
-                  color: userHasBookedToday ? "#856404" : "#842029",
-                  marginTop: 20,
-                }}
-              >
-                <strong style={{ fontSize: 18 }}>{userHasBookedToday ? "⚠️ Tidak dapat menampilkan kendaraan" : "❌ Tidak ada kendaraan tersedia"}</strong>
-                <p style={{ margin: "12px 0 0 0", fontSize: 14 }}>
-                  {userHasBookedToday ? "Anda sudah memiliki booking untuk tanggal ini. Batalkan booking yang ada atau pilih tanggal lain." : "Semua kendaraan sedang digunakan atau tidak aktif untuk waktu yang dipilih."}
-                </p>
+          <>
+            {/* ✅ ALERT FULL WIDTH */}
+            {vehicles.length > 0 && (
+              <div className="vehicle-alert">
+                ✅ Ditemukan <strong>{vehicles.length}</strong> kendaraan tersedia
               </div>
-            ) : (
-              <>
-                <div
-                  style={{
-                    background: "#d1e7dd",
-                    border: "1px solid #badbcc",
-                    padding: "12px 16px",
-                    borderRadius: 8,
-                    marginBottom: 20,
-                    color: "#0f5132",
-                    textAlign: "center",
-                  }}
-                >
-                  ✅ Ditemukan <strong>{vehicles.length}</strong> kendaraan tersedia
-                </div>
-                {vehicles.map((v) => (
-                  <VehicleCard key={v.id} vehicle={v} start={startDateTime} end={endDateTime} />
-                ))}
-              </>
             )}
-          </div>
+
+            {/* ✅ GRID KHUSUS CARD */}
+            <div className="vehicle-list">
+              {vehicles.length === 0 ? <div className="vehicle-empty">❌ Tidak ada kendaraan tersedia</div> : vehicles.map((v) => <VehicleCard key={v.id} vehicle={v} start={startDateTime} end={endDateTime} />)}
+            </div>
+          </>
         )}
 
         {/* ✅ INFO AWAL (SEBELUM SEARCH) */}
