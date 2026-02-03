@@ -264,7 +264,7 @@ function VehicleBookingForm() {
             </div>
 
             <div className="form-group">
-              <label>Tujuan Peminjaman</label>
+              <label>Lokasi Tujuan Peminjaman</label>
               <input placeholder="Enter tujuan" value={tujuan} onChange={(e) => setTujuan(e.target.value)} />
             </div>
 
@@ -277,8 +277,8 @@ function VehicleBookingForm() {
 
             {keperluan === "KEGIATAN_LAIN" && (
               <div className="form-group">
-                <label>Uraikan Alasan</label>
-                <textarea placeholder="Masukkan alasan" value={alasan} onChange={(e) => setAlasan(e.target.value)} />
+                <label>Uraian</label>
+                <textarea placeholder="Masukkan uraian" value={alasan} onChange={(e) => setAlasan(e.target.value)} />
               </div>
             )}
           </div>

@@ -111,11 +111,6 @@ function AdminBannerHome() {
       return;
     }
 
-    if (!title.trim()) {
-      alert("Judul banner wajib diisi");
-      return;
-    }
-
     if (!imageBase64) {
       alert("Gambar banner wajib diupload");
       return;
@@ -164,16 +159,6 @@ function AdminBannerHome() {
             </label>
 
             <div className="admin-banner-form">
-              <div className="admin-banner-group">
-                <label>Judul</label>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Contoh: Pengumuman" />
-              </div>
-
-              <div className="admin-banner-group">
-                <label>Pesan</label>
-                <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Contoh: Harap isi form sesuai prosedur" />
-              </div>
-
               <div className="admin-banner-group">
                 <label>Upload Banner (Auto Compress Base64)</label>
                 <input type="file" accept="image/*" onChange={handleImageChange} />
