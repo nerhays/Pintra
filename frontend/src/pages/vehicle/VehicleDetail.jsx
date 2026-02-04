@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "../../firebase";
+import { getMainImageDataUrl } from "../../utils/getMainImage";
 
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -54,7 +55,7 @@ function VehicleDetail() {
 
       <div className="vehicle-detail-container">
         {/* IMAGE */}
-        <div className="vehicle-image-box" />
+        <div className="vehicle-image-box">{getMainImageDataUrl(vehicle?.photos) ? <img src={getMainImageDataUrl(vehicle?.photos)} alt={vehicle.nama} /> : <div className="vehicle-image-placeholder">🚗</div>}</div>
 
         <div className="vehicle-info-wrapper">
           {/* INFO */}
@@ -80,12 +81,7 @@ function VehicleDetail() {
 
           {/* ACTION */}
           <div className="vehicle-action">
-            <button
-              className="btn-pinjam"
-              onClick={() =>
-                navigate(`/vehicle/${vehicleId}/form?start=${start}&end=${end}`)
-              }
-            >
+            <button className="btn-pinjam" onClick={() => navigate(`/vehicle/${vehicleId}/form?start=${start}&end=${end}`)}>
               Pinjam
             </button>
           </div>

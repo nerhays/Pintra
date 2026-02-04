@@ -4,6 +4,7 @@ import { db } from "../../../firebase";
 
 import AdminLayout from "../../../components/admin/AdminLayout";
 import "./AdminKendaraanPage.css";
+import { compressImageToBase64 } from "../../../utils/compressImageToBase64";
 
 function AdminKendaraanPage() {
   const [vehicles, setVehicles] = useState([]);
@@ -25,6 +26,8 @@ function AdminKendaraanPage() {
   const [kursi, setKursi] = useState("");
   const [odometerTerakhir, setOdometerTerakhir] = useState("");
   const [statusAktif, setStatusAktif] = useState(true);
+  const [photos, setPhotos] = useState([]);
+  // [{ base64, dataUrl, mimeType, isMain }]
 
   // kelengkapan input (dipisah pakai koma)
   const [kelengkapanText, setKelengkapanText] = useState("");
@@ -41,6 +44,7 @@ function AdminKendaraanPage() {
     setStatusAktif(true);
     setKelengkapanText("");
     setSelectedId(null);
+    setPhotos([]);
   };
 
   const fetchVehicles = async () => {
@@ -82,6 +86,14 @@ function AdminKendaraanPage() {
     setKursi(v.kursi ?? "");
     setOdometerTerakhir(v.odometerTerakhir ?? "");
     setStatusAktif(v.statusAktif ?? true);
+    setPhotos(
+      Array.isArray(v.photos)
+        ? v.photos.map((p) => ({
+            ...p,
+            dataUrl: `data:${p.mimeType};base64,${p.base64}`,
+          }))
+        : [],
+    );
 
     // array jadi text
     const arr = Array.isArray(v.kelengkapan) ? v.kelengkapan : [];
@@ -99,6 +111,62 @@ function AdminKendaraanPage() {
       .filter((x) => x.length > 0);
 
     return items;
+  };
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    try {
+      const results = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const res = await compressImageToBase64(files[i], {
+          maxWidth: 1280,
+          maxHeight: 720,
+          quality: 0.7,
+        });
+
+        results.push({
+          base64: res.pureBase64,
+          dataUrl: res.dataUrl, // preview
+          mimeType: res.mimeType,
+          isMain: false,
+        });
+      }
+
+      setPhotos((prev) => {
+        const merged = [...prev, ...results];
+
+        // kalau belum ada foto utama → set foto pertama
+        if (!merged.some((p) => p.isMain) && merged.length > 0) {
+          merged[0].isMain = true;
+        }
+
+        return [...merged];
+      });
+    } catch (err) {
+      alert("Gagal upload foto: " + err.message);
+    }
+  };
+  const setMainPhoto = (index) => {
+    setPhotos((prev) =>
+      prev.map((p, i) => ({
+        ...p,
+        isMain: i === index,
+      })),
+    );
+  };
+
+  const removePhoto = (index) => {
+    setPhotos((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+
+      if (!next.some((p) => p.isMain) && next.length > 0) {
+        next[0].isMain = true;
+      }
+
+      return [...next];
+    });
   };
 
   const handleSubmit = async () => {
@@ -141,6 +209,11 @@ function AdminKendaraanPage() {
         odometerTerakhir: odoNumber,
         statusAktif: Boolean(statusAktif),
         kelengkapan: parseKelengkapan(),
+        photos: photos.map((p) => ({
+          base64: p.base64,
+          mimeType: p.mimeType,
+          isMain: p.isMain,
+        })),
       };
 
       if (mode === "ADD") {
@@ -323,6 +396,29 @@ function AdminKendaraanPage() {
                     <option value="false">Nonaktif</option>
                   </select>
                 </div>
+                <div className="form-group full">
+                  <label>Foto Kendaraan (bisa lebih dari 1)</label>
+                  <input type="file" accept="image/*" multiple onChange={handleImageChange} />
+                </div>
+                {photos.length > 0 && (
+                  <div className="photo-preview-grid">
+                    {photos.map((p, idx) => (
+                      <div key={idx} className={`photo-item ${p.isMain ? "main" : ""}`}>
+                        <img src={p.dataUrl} alt="preview" />
+
+                        <div className="photo-actions">
+                          <button type="button" onClick={() => setMainPhoto(idx)}>
+                            {p.isMain ? "Foto Utama" : "Jadikan Utama"}
+                          </button>
+
+                          <button type="button" className="danger" onClick={() => removePhoto(idx)}>
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="modal-actions">

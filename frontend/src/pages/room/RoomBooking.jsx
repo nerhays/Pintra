@@ -6,48 +6,28 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import FooterOrnament from "../../components/FooterOrnament";
+import RoomCard from "../../components/RoomCard";
 
 import "./RoomBooking.css";
 
 // ================= CONFIG =================
 const BUFFER_HOURS = 2;
 
-// generate slot tiap 30 menit
-function generateTimeSlots(start = "08:00", end = "17:00") {
-  const slots = [];
-  let [h, m] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-
-  while (h < eh || (h === eh && m <= em)) {
-    slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    m += 30;
-    if (m >= 60) {
-      m = 0;
-      h += 1;
-    }
-  }
-  return slots;
-}
-
-const TIME_SLOTS = generateTimeSlots("08:00", "17:00");
-
 // ================= COMPONENT =================
 function RoomBooking() {
   const navigate = useNavigate();
 
-  const [rooms, setRooms] = useState([]);
+  const [allRooms, setAllRooms] = useState([]);
+  const [availableRooms, setAvailableRooms] = useState([]);
   const [role, setRole] = useState(null);
 
-  const [selectedRoom, setSelectedRoom] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-
-  const [availableTimes, setAvailableTimes] = useState([]);
   const [jamMulai, setJamMulai] = useState("");
   const [jamSelesai, setJamSelesai] = useState("");
 
-  // ✅ NEW: tracking user sudah booking hari ini atau belum
   const [userHasBookedToday, setUserHasBookedToday] = useState(false);
   const [loadingCheck, setLoadingCheck] = useState(false);
+  const [searched, setSearched] = useState(false);
 
   // ================= FETCH ROOMS & ROLE =================
   useEffect(() => {
@@ -62,24 +42,24 @@ function RoomBooking() {
       // rooms
       const snapRooms = await getDocs(collection(db, "rooms"));
 
-      const allRooms = snapRooms.docs.map((doc) => ({
+      const allRoomsData = snapRooms.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      const onlyAvailableRooms = allRooms.filter((r) => r.status === "available");
+      const onlyAvailableRooms = allRoomsData.filter((r) => r.status === "available");
 
-      setRooms(onlyAvailableRooms);
+      setAllRooms(onlyAvailableRooms);
     };
 
     fetchData();
   }, []);
 
-  // ✅ NEW: CEK APAKAH USER SUDAH BOOKING HARI INI
+  // ✅ CEK APAKAH USER SUDAH BOOKING HARI INI
   const checkUserBookingToday = async (date) => {
     if (!auth.currentUser || !date) {
       setUserHasBookedToday(false);
-      return;
+      return false;
     }
 
     setLoadingCheck(true);
@@ -92,7 +72,6 @@ function RoomBooking() {
       const hasBookingToday = snap.docs.some((doc) => {
         const data = doc.data();
 
-        // Hanya cek booking yang masih aktif (bukan REJECTED/CANCELLED)
         const activeStatuses = ["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVED"];
         if (!activeStatuses.includes(data.status)) return false;
 
@@ -104,152 +83,130 @@ function RoomBooking() {
       });
 
       setUserHasBookedToday(hasBookingToday);
+      setLoadingCheck(false);
 
-      if (hasBookingToday) {
-        alert("⚠️ Anda sudah memiliki booking aktif untuk tanggal ini. Hanya boleh 1 booking per hari.");
-      }
+      return hasBookingToday;
     } catch (err) {
       console.error("Error checking user booking:", err);
-    } finally {
       setLoadingCheck(false);
+      return false;
     }
   };
 
-  // ✅ NEW: FILTER JAM YANG SUDAH LEWAT (HANYA UNTUK HARI INI)
-  const filterPastTimes = (slots, selectedDate) => {
+  // ✅ GET MIN TIME untuk jam mulai
+  const getMinTime = () => {
+    if (!selectedDate) return "08:00";
+
     const today = new Date().toISOString().split("T")[0];
 
-    // Kalau bukan hari ini, return semua slot
-    if (selectedDate !== today) return slots;
+    // Kalau bukan hari ini, minimal jam 08:00
+    if (selectedDate !== today) return "08:00";
 
-    // Kalau hari ini, filter jam yang sudah lewat
+    // Kalau hari ini, minimal 1 menit dari sekarang
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes() + 1).padStart(2, "0");
 
-    return slots.filter((slot) => {
-      const [hour, minute] = slot.split(":").map(Number);
+    // Jika sudah lewat jam 17:00, tidak bisa booking hari ini
+    if (now.getHours() >= 17) {
+      return "17:00";
+    }
 
-      // Jam sudah lewat
-      if (hour < currentHour) return false;
+    return `${hours}:${minutes}`;
+  };
 
-      // Jam sama tapi menit sudah lewat
-      if (hour === currentHour && minute <= currentMinute) return false;
+  // ✅ VALIDASI WAKTU
+  const validateDateTime = (date, startTime, endTime) => {
+    const now = new Date();
+    const userStart = new Date(`${date}T${startTime}`);
+    const userEnd = new Date(`${date}T${endTime}`);
+
+    // Validasi 1: End harus lebih besar dari start
+    if (userEnd <= userStart) {
+      alert("❌ Waktu selesai harus lebih besar dari waktu mulai");
+      return false;
+    }
+
+    // Validasi 2: Tidak boleh pilih waktu yang sudah lewat
+    if (userStart <= now) {
+      alert("❌ Tidak bisa booking waktu yang sudah lewat. Pilih waktu di masa depan.");
+      return false;
+    }
+
+    // Validasi 3: Maksimal jam 17:00
+    const maxTime = new Date(`${date}T17:00`);
+    if (userEnd > maxTime) {
+      alert("❌ Waktu selesai maksimal jam 17:00");
+      return false;
+    }
+
+    // Validasi 4: Minimal jam 08:00
+    const minTime = new Date(`${date}T08:00`);
+    if (userStart < minTime) {
+      alert("❌ Waktu mulai minimal jam 08:00");
+      return false;
+    }
+
+    return true;
+  };
+
+  // 🔍 SEARCH RUANGAN TERSEDIA
+  const handleSearch = async () => {
+    if (!selectedDate || !jamMulai || !jamSelesai) {
+      alert("❌ Tanggal & jam wajib diisi");
+      return;
+    }
+
+    // ✅ VALIDASI WAKTU
+    if (!validateDateTime(selectedDate, jamMulai, jamSelesai)) {
+      return;
+    }
+
+    // ✅ CEK USER SUDAH BOOKING HARI INI
+    const hasBooked = await checkUserBookingToday(selectedDate);
+
+    if (hasBooked) {
+      alert("⚠️ Anda sudah memiliki booking ruangan aktif untuk tanggal ini. Hanya boleh 1 booking per hari.");
+      setAvailableRooms([]);
+      setSearched(true);
+      return;
+    }
+
+    const userStart = new Date(`${selectedDate}T${jamMulai}`);
+    const userEnd = new Date(`${selectedDate}T${jamSelesai}`);
+
+    // 1️⃣ Ambil semua booking ruangan
+    const bookingSnap = await getDocs(collection(db, "room_bookings"));
+    const bookings = bookingSnap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
+
+    // 2️⃣ Filter ruangan tersedia (tidak bentrok)
+    const available = allRooms.filter((room) => {
+      const BLOCKING_STATUS = ["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVED"];
+
+      const relatedBookings = bookings.filter((b) => b.ruang?.roomId === room.id && BLOCKING_STATUS.includes(b.status));
+
+      for (const booking of relatedBookings) {
+        const bStart = booking.waktuMulai?.toDate?.();
+        const bEnd = booking.waktuSelesai?.toDate?.();
+
+        if (!bStart || !bEnd) continue;
+
+        // Apply buffer
+        const bEndWithBuffer = new Date(bEnd.getTime() + BUFFER_HOURS * 60 * 60 * 1000);
+
+        // ✅ overlap check
+        const isOverlap = userStart < bEndWithBuffer && userEnd > bStart;
+        if (isOverlap) return false;
+      }
 
       return true;
     });
-  };
 
-  // ================= HITUNG JAM TERSEDIA =================
-  const checkAvailability = async () => {
-    if (!selectedRoom || !selectedDate) {
-      setAvailableTimes([]);
-      return;
-    }
-
-    // ✅ CEK USER SUDAH BOOKING HARI INI ATAU BELUM
-    await checkUserBookingToday(selectedDate);
-
-    const roomSelected = rooms.find((r) => r.id === selectedRoom);
-    if (!roomSelected) {
-      setSelectedRoom("");
-      setAvailableTimes([]);
-      alert("❌ Ruangan tidak tersedia / sudah nonaktif.");
-      return;
-    }
-
-    const q = query(collection(db, "room_bookings"), where("ruang.roomId", "==", selectedRoom));
-    const snap = await getDocs(q);
-
-    let blockedSlots = new Set();
-
-    snap.docs.forEach((doc) => {
-      const data = doc.data();
-
-      const blockedStatuses = ["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVED"];
-      if (!blockedStatuses.includes(data.status)) return;
-
-      const start = data.waktuMulai?.toDate?.();
-      const end = data.waktuSelesai?.toDate?.();
-      if (!start || !end) return;
-
-      const bookingDate = start.toISOString().split("T")[0];
-      if (bookingDate !== selectedDate) return;
-
-      const endWithBuffer = new Date(end.getTime() + BUFFER_HOURS * 60 * 60 * 1000);
-
-      TIME_SLOTS.forEach((slot) => {
-        const slotTime = new Date(`${selectedDate}T${slot}`);
-        if (slotTime >= start && slotTime < endWithBuffer) {
-          blockedSlots.add(slot);
-        }
-      });
-    });
-
-    let available = TIME_SLOTS.filter((slot) => !blockedSlots.has(slot));
-
-    // ✅ FILTER JAM YANG SUDAH LEWAT (HANYA UNTUK HARI INI)
-    available = filterPastTimes(available, selectedDate);
-
-    setAvailableTimes(available);
-  };
-
-  useEffect(() => {
-    checkAvailability();
-    setJamMulai("");
-    setJamSelesai("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRoom, selectedDate]);
-
-  function getValidEndTimes(jamMulai, availableTimes, timeSlots) {
-    if (!jamMulai) return [];
-
-    const startIndex = timeSlots.indexOf(jamMulai);
-    if (startIndex === -1) return [];
-
-    const valid = [];
-
-    for (let i = startIndex + 1; i < timeSlots.length; i++) {
-      const slot = timeSlots[i];
-
-      if (!availableTimes.includes(slot)) break;
-
-      valid.push(slot);
-    }
-
-    return valid;
-  }
-
-  // ✅ VALIDASI SEBELUM NAVIGATE KE FORM BOOKING
-  const handleBooking = () => {
-    // Validasi 1: User sudah booking hari ini
-    if (userHasBookedToday) {
-      alert("❌ Anda sudah memiliki booking untuk hari ini. Hanya boleh 1 booking per hari.");
-      return;
-    }
-
-    // Validasi 2: Cek lagi jam yang dipilih belum lewat (untuk hari ini)
-    const today = new Date().toISOString().split("T")[0];
-    if (selectedDate === today) {
-      const now = new Date();
-      const [selectedHour, selectedMinute] = jamMulai.split(":").map(Number);
-      const selectedTime = new Date();
-      selectedTime.setHours(selectedHour, selectedMinute, 0, 0);
-
-      if (selectedTime <= now) {
-        alert("❌ Jam yang dipilih sudah lewat. Pilih jam yang lebih baru.");
-        return;
-      }
-    }
-
-    // Validasi 3: Jam mulai & selesai harus ada
-    if (!jamMulai || !jamSelesai) {
-      alert("❌ Pilih jam mulai dan jam selesai terlebih dahulu.");
-      return;
-    }
-
-    // ✅ Semua validasi lolos, navigate ke form
-    navigate(`/room/book/${selectedRoom}?date=${selectedDate}&start=${jamMulai}&end=${jamSelesai}`);
+    setAvailableRooms(available);
+    setSearched(true);
   };
 
   // ================= UI =================
@@ -262,104 +219,57 @@ function RoomBooking() {
 
         {/* FILTER */}
         <div className="room-filter">
-          <select value={selectedRoom} onChange={(e) => setSelectedRoom(e.target.value)}>
-            <option value="">Pilih Ruangan</option>
-            {rooms.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.namaRuang}
-              </option>
-            ))}
-          </select>
+          <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split("T")[0]} />
 
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]} // ✅ tidak bisa pilih tanggal kemarin
-          />
+          <input type="time" value={jamMulai} onChange={(e) => setJamMulai(e.target.value)} min={getMinTime()} max="17:00" disabled={!selectedDate} />
+
+          <span className="to">Sampai</span>
+
+          <input type="time" value={jamSelesai} onChange={(e) => setJamSelesai(e.target.value)} min={jamMulai || getMinTime()} max="17:00" disabled={!jamMulai} />
+
+          <button onClick={handleSearch} disabled={loadingCheck}>
+            {loadingCheck ? "Mengecek..." : "Search"}
+          </button>
         </div>
 
         {/* ✅ WARNING JIKA USER SUDAH BOOKING HARI INI */}
-        {userHasBookedToday && selectedDate && (
-          <div
-            style={{
-              background: "#fff3cd",
-              border: "1px solid #ffc107",
-              padding: "12px 16px",
-              borderRadius: 8,
-              marginTop: 16,
-              color: "#856404",
-            }}
-          >
-            <strong>⚠️ Perhatian:</strong> Anda sudah memiliki booking aktif untuk tanggal ini. Sistem hanya mengizinkan 1 booking per hari.
+        {userHasBookedToday && searched && (
+          <div className="room-warning">
+            <strong>⚠️ Perhatian:</strong> Anda sudah memiliki booking aktif untuk tanggal ini.
+            <br />
+            Sistem hanya mengizinkan 1 booking per hari.
           </div>
         )}
 
         {/* ✅ LOADING INDICATOR */}
         {loadingCheck && (
-          <div style={{ textAlign: "center", padding: 16, color: "#666" }}>
-            <p>Mengecek ketersediaan...</p>
+          <div className="room-loading">
+            <p>⏳ Mengecek ketersediaan...</p>
           </div>
         )}
 
-        {/* JAM */}
-        {!loadingCheck && availableTimes.length > 0 && !userHasBookedToday && (
-          <div className="time-wrapper">
-            {/* JAM MULAI */}
-            <div>
-              <label>Jam Mulai</label>
-              <select value={jamMulai} onChange={(e) => setJamMulai(e.target.value)}>
-                <option value="">-- Pilih --</option>
-                {TIME_SLOTS.map((jam) => {
-                  const isAvailable = availableTimes.includes(jam);
-                  return (
-                    <option key={jam} value={jam} disabled={!isAvailable}>
-                      {jam} {!isAvailable && "(Tidak tersedia)"}
-                    </option>
-                  );
-                })}
-              </select>
+        {/* ✅ HASIL PENCARIAN */}
+        {searched && !loadingCheck && (
+          <>
+            {/* ✅ ALERT FULL WIDTH */}
+            {availableRooms.length > 0 && (
+              <div className="room-alert">
+                ✅ Ditemukan <strong>{availableRooms.length}</strong> ruangan tersedia
+              </div>
+            )}
+
+            {/* ✅ GRID CARD */}
+            <div className="room-list">
+              {availableRooms.length === 0 ? <div className="room-empty">❌ Tidak ada ruangan tersedia</div> : availableRooms.map((room) => <RoomCard key={room.id} room={room} date={selectedDate} start={jamMulai} end={jamSelesai} />)}
             </div>
-
-            {/* JAM SELESAI */}
-            <div>
-              <label>Jam Selesai</label>
-              <select value={jamSelesai} onChange={(e) => setJamSelesai(e.target.value)} disabled={!jamMulai}>
-                <option value="">-- Pilih --</option>
-                {getValidEndTimes(jamMulai, availableTimes, TIME_SLOTS).map((jam) => (
-                  <option key={jam} value={jam}>
-                    {jam}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          </>
         )}
 
-        {/* ✅ INFO JIKA TIDAK ADA JAM TERSEDIA */}
-        {!loadingCheck && selectedRoom && selectedDate && availableTimes.length === 0 && !userHasBookedToday && (
-          <div
-            style={{
-              background: "#f8d7da",
-              border: "1px solid #f5c2c7",
-              padding: "12px 16px",
-              borderRadius: 8,
-              marginTop: 16,
-              color: "#842029",
-              textAlign: "center",
-            }}
-          >
-            <strong>❌ Tidak ada jam tersedia</strong>
-            <p style={{ margin: "8px 0 0 0", fontSize: 14 }}>Semua jam sudah dibooking atau jam sudah lewat untuk hari ini.</p>
-          </div>
-        )}
-
-        {/* ACTION */}
-        {!loadingCheck && jamMulai && jamSelesai && !userHasBookedToday && (
-          <div className="action">
-            <button className="btn-primary" onClick={handleBooking}>
-              Booking Ruangan Ini
-            </button>
+        {/* ✅ INFO AWAL (SEBELUM SEARCH) */}
+        {!searched && (
+          <div className="room-info">
+            <div className="room-info-icon">🏢</div>
+            <p>Pilih tanggal & waktu untuk melihat ruangan yang tersedia</p>
           </div>
         )}
       </div>

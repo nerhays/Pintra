@@ -1,50 +1,193 @@
+/* ================= CONTAINER ================= */
 .room-container {
-  padding: 32px;
+  padding: 40px;
   padding-top: 110px;
 }
 
+@media (max-width: 768px) {
+  .room-container {
+    padding: 16px;
+    padding-top: 110px;
+  }
+}
+
+/* ================= TITLE ================= */
 .room-title {
   text-align: center;
   margin-bottom: 24px;
+  font-size: 24px;
 }
 
+@media (max-width: 768px) {
+  .room-title {
+    font-size: 20px;
+  }
+}
+
+/* ================= FILTER ================= */
 .room-filter {
   display: flex;
-  gap: 12px;
   justify-content: center;
-  margin-bottom: 24px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
 }
 
 .room-filter select,
 .room-filter input {
   padding: 10px;
+  width: 220px;
   border-radius: 6px;
   border: 1px solid #ccc;
 }
 
 .room-filter button {
+  padding: 10px 20px;
   background: black;
   color: white;
-  padding: 10px 18px;
-  border-radius: 6px;
   border: none;
   cursor: pointer;
+  border-radius: 6px;
 }
 
+.room-filter button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* MOBILE FILTER */
+@media (max-width: 768px) {
+  .room-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .room-filter select,
+  .room-filter input,
+  .room-filter button {
+    width: 100%;
+  }
+}
+
+/* ================= ROOM SELECTION ================= */
+.room-selection {
+  max-width: 600px;
+  margin: 0 auto 32px auto;
+}
+
+.room-selection label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
+  text-align: center;
+}
+
+.room-selection select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+}
+
+@media (max-width: 768px) {
+  .room-selection {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}
+
+/* ================= LIST ================= */
+.room-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ================= EMPTY STATE ================= */
+.room-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 16px;
+  grid-column: 1 / -1;
+}
+
+.to {
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .room-list {
+    grid-template-columns: 1fr;
+  }
+
+  .to {
+    text-align: center;
+  }
+}
+
+/* ================= TIME WRAPPER ================= */
 .time-wrapper {
   display: flex;
   justify-content: center;
   gap: 24px;
   margin-bottom: 24px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  flex-wrap: wrap;
+}
+
+.time-wrapper > div {
+  flex: 1;
+  min-width: 200px;
+}
+
+.time-wrapper label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
 }
 
 .time-wrapper select {
+  width: 100%;
   padding: 10px;
   border-radius: 6px;
+  border: 1px solid #ccc;
 }
 
+.time-wrapper select:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* MOBILE TIME WRAPPER */
+@media (max-width: 768px) {
+  .time-wrapper {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .time-wrapper > div {
+    width: 100%;
+  }
+}
+
+/* ================= ACTION ================= */
 .action {
   text-align: center;
+  margin-top: 32px;
 }
 
 .btn-primary {
@@ -55,4 +198,102 @@
   border: none;
   font-size: 16px;
   cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: #0a58ca;
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* ================= ALERTS & MESSAGES ================= */
+.room-alert {
+  background: #d1e7dd;
+  border: 1px solid #badbcc;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 0 auto 24px auto;
+  color: #0f5132;
+  text-align: center;
+  max-width: 1200px;
+}
+
+.room-warning {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin: 20px auto;
+  color: #856404;
+  text-align: center;
+  max-width: 1200px;
+}
+
+.room-error {
+  background: #f8d7da;
+  border: 1px solid #f5c2c7;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 16px auto;
+  color: #842029;
+  text-align: center;
+  max-width: 1200px;
+}
+
+.room-info {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 40px auto;
+  max-width: 1200px;
+}
+
+.room-info-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.room-info p {
+  font-size: 16px;
+  margin: 0;
+}
+
+.room-loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 20px auto;
+  max-width: 1200px;
+}
+
+/* ================= MOBILE RESPONSIVE ================= */
+@media (max-width: 768px) {
+  .room-warning,
+  .room-error,
+  .room-alert,
+  .room-info,
+  .room-loading {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .room-info {
+    padding: 40px 16px;
+  }
+
+  .room-info-icon {
+    font-size: 40px;
+  }
+
+  .room-info p {
+    font-size: 14px;
+  }
 }

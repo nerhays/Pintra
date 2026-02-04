@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { addDoc, collection, doc, getDoc, Timestamp, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebase";
+import { getMainImageDataUrl } from "../../utils/getMainImage";
 
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -34,7 +35,6 @@ function VehicleBookingForm() {
   const [nomorSurat, setNomorSurat] = useState("");
   const [alasan, setAlasan] = useState("");
   const [loadingSubmit, setLoadingSubmit] = useState(false);
-
   // ✅ cari manager divisi (untuk staff/operator yang bukan manager)
   const findManagerDivisi = async (divisi) => {
     if (!divisi) return null;
@@ -243,6 +243,7 @@ function VehicleBookingForm() {
   };
 
   if (!vehicle) return <div style={{ padding: 40 }}>Loading...</div>;
+  const imageSrc = getMainImageDataUrl(vehicle?.photos);
 
   return (
     <>
@@ -285,7 +286,7 @@ function VehicleBookingForm() {
 
           {/* RIGHT */}
           <div className="form-right">
-            <div className="vehicle-preview" />
+            <div className="vehicle-preview">{imageSrc ? <img src={imageSrc} alt={vehicle.nama} /> : <div className="vehicle-preview-placeholder">🚗</div>}</div>
 
             <h3>{vehicle.platNomor}</h3>
             <p>{vehicle.nama}</p>

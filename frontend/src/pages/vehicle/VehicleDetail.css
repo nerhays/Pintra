@@ -79,3 +79,25 @@
     width: 100%;
   }
 }
+/* ================= IMAGE WRAPPER ================= */
+.vehicle-image-box {
+  width: 100%;
+  aspect-ratio: 16 / 9; /* rasio aman untuk mobil */
+  border-radius: 16px;
+  overflow: hidden;
+  background: #e5e7eb;
+  margin-bottom: 16px;
+}
+
+/* IMAGE */
+.vehicle-image-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* isi penuh tanpa gepeng */
+  object-position: center;
+}
+@media (max-width: 768px) {
+  .vehicle-image-box {
+    aspect-ratio: 4 / 3;
+  }
+}
