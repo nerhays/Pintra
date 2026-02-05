@@ -44,11 +44,12 @@
 
 /* ================= BANNER ONLY ================= */
 .popup-card {
-  background: transparent;     /* ❌ hilangkan putih */
-  box-shadow: none;             /* ❌ hilangkan frame */
+  background: transparent;
+  box-shadow: none;
   border-radius: 0;
   max-width: 95vw;
   max-height: 90vh;
+  position: relative;
 
   animation: bannerFadeIn 0.4s ease forwards;
 }
@@ -63,14 +64,173 @@
 
   border-radius: 14px;
 
-  box-shadow:
-    0 25px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ================= NAVIGATION ARROWS ================= */
+.popup-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+
+  width: 48px;
+  height: 48px;
+
+  font-size: 32px;
+  font-weight: bold;
+  color: #1f2937;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  transition: all 0.2s ease;
+
+  z-index: 10;
+}
+
+.popup-nav:hover {
+  background: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.popup-nav:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.popup-nav-prev {
+  left: -60px;
+}
+
+.popup-nav-next {
+  right: -60px;
+}
+
+/* ================= DOTS INDICATOR ================= */
+.popup-dots {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  display: flex;
+  gap: 10px;
+
+  z-index: 10;
+}
+
+.popup-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+
+  cursor: pointer;
+
+  transition: all 0.3s ease;
+}
+
+.popup-dot:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: scale(1.2);
+}
+
+.popup-dot.active {
+  background: white;
+  width: 32px;
+  border-radius: 6px;
+}
+
+/* ================= CLOSE BUTTON ================= */
+.popup-close-btn {
+  position: absolute;
+  top: -50px;
+  right: 0;
+
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+
+  width: 40px;
+  height: 40px;
+
+  font-size: 24px;
+  font-weight: bold;
+  color: #1f2937;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  transition: all 0.2s ease;
+
+  z-index: 10;
+}
+
+.popup-close-btn:hover {
+  background: white;
+  transform: rotate(90deg) scale(1.1);
+}
+
+.popup-close-btn:active {
+  transform: rotate(90deg) scale(0.95);
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+  .popup-nav {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+
+  .popup-nav-prev {
+    left: 10px;
+  }
+
+  .popup-nav-next {
+    right: 10px;
+  }
+
+  .popup-close-btn {
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+
+  .popup-dots {
+    bottom: -35px;
+  }
+
+  .popup-dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .popup-dot.active {
+    width: 24px;
+  }
 }
 
 /* ================= HIDDEN ELEMENT ================= */
 .popup-header,
 .popup-message,
-.popup-footer,
-.popup-close {
+.popup-footer {
   display: none !important;
 }
