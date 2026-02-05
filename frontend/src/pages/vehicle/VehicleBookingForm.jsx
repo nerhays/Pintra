@@ -141,9 +141,9 @@ function VehicleBookingForm() {
       }
 
       // ✅ STATUS FLOW
-      let initialStatus = "APPROVAL_1";
-      if (isAdminBorrower) initialStatus = "APPROVED";
-      else if (isManagerBorrower) initialStatus = "APPROVAL_2";
+      let initialStatus = "SUBMITTED";
+      if (isAdminBorrower) initialStatus = "APPROVAL_3";
+      else if (isManagerBorrower) initialStatus = "APPROVAL_1";
 
       // ✅ booking payload (TANPA nested approval object)
       const payload = {

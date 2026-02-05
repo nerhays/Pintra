@@ -744,10 +744,10 @@ app.post("/api/approval/vehicle/action", async (req, res) => {
     }
 
     // APPROVE LOGIC
-    if (currentStatus === "APPROVAL_1") {
+    if (currentStatus === "SUBMITTED") {
       // Manager approve → trigger Operator
       await bookingRef.update({
-        status: "APPROVAL_2",
+        status: "APPROVAL_1",
         updatedAt: now,
         lastApprovalBy: "Manager (via WA)",
         lastApprovalRole: "manager",
@@ -807,10 +807,10 @@ _Pesan otomatis PINTRA_`,
       } catch (err) {
         console.error("❌ Error sending to Operator:", err);
       }
-    } else if (currentStatus === "APPROVAL_2") {
+    } else if (currentStatus === "APPROVAL_1") {
       // Operator approve → trigger Admin
       await bookingRef.update({
-        status: "APPROVAL_3",
+        status: "APPROVAL_2",
         updatedAt: now,
         lastApprovalBy: "Operator (via WA)",
         lastApprovalRole: "operator",
@@ -869,10 +869,10 @@ _Pesan otomatis PINTRA_`,
       } catch (err) {
         console.error("❌ Error sending to Admin:", err);
       }
-    } else if (currentStatus === "APPROVAL_3") {
+    } else if (currentStatus === "APPROVAL_2") {
       // Admin approve → FINAL APPROVED
       await bookingRef.update({
-        status: "APPROVED",
+        status: "APPROVAL_3",
         updatedAt: now,
         lastApprovalBy: "Admin (via WA)",
         lastApprovalRole: "admin",

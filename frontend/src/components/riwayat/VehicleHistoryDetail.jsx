@@ -67,7 +67,7 @@ function VehicleHistoryDetail() {
   // - status APPROVAL_3 -> munculkan tombol checkout (ambil kunci)
   // - setelah checkout -> ON_GOING
   // - jika ON_GOING dan sisa waktu <= 2 jam -> munculkan tombol pengembalian
-  const canCheckout = status === "APPROVED";
+  const canCheckout = status === "APPROVAL_3";
 
   const canCheckin = useMemo(() => {
     if (status !== "ON_GOING") return false;
@@ -113,11 +113,10 @@ function VehicleHistoryDetail() {
 
           {status === "ON_GOING" && <h2 className="warning">⚠ Kendaraan Sedang Dipinjam</h2>}
 
-          {status === "APPROVAL_3" && <h2 className="info">Sudah tahap akhir approval (Tinggal Menunggu Admin untuk approved)</h2>}
+          {status === "APPROVAL_3" && <h2 className="info">✅ Sudah disetujui Admin — Silakan ambil kunci kendaraan</h2>}
 
-          {status === "APPROVAL_1" && <h2 className="pending">⏳ Menunggu approval Manager</h2>}
-          {status === "APPROVAL_2" && <h2 className="pending">⏳ Menunggu approval Operator</h2>}
-          {status === "APPROVED" && <h2 className="info">✅ Ambil Kunci ke Operator, Jangan Lupa Isi Form Check Mobil</h2>}
+          {status === "APPROVAL_1" && <h2 className="pending">⏳ Menunggu approval Operator</h2>}
+          {status === "APPROVAL_2" && <h2 className="pending">⏳ Menunggu approval Admin</h2>}
           {status === "REJECTED" && (
             <h2 className="danger" style={{ color: "red" }}>
               ❌ Pengajuan Ditolak

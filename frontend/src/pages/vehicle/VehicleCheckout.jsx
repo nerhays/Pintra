@@ -183,8 +183,8 @@ function VehicleCheckout() {
       return;
     }
 
-    if (data.status !== "APPROVED") {
-      alert("Checkout hanya bisa dilakukan jika status APPROVED");
+    if (data.status !== "APPROVAL_3") {
+      alert("Checkout hanya bisa dilakukan jika status APPROVAL_3");
       return;
     }
 
@@ -249,7 +249,7 @@ function VehicleCheckout() {
       await addDoc(collection(db, "vehicle_bookings", bookingId, "approval_history"), {
         action: "VEHICLE_CHECKOUT",
         actionBy: data.namaPeminjam || data.emailPeminjam || "-",
-        oldStatus: "APPROVED",
+        oldStatus: "APPROVAL_3",
         newStatus: "ON_GOING",
         note: "Kendaraan diambil & kondisi awal dicatat",
         timestamp: now,
