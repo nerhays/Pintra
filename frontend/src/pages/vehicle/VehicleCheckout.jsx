@@ -69,6 +69,11 @@ function VehicleCheckout() {
       alert("⚠️ Browser Anda tidak mendukung Geolocation. Tracking tidak akan aktif.");
     }
   }, []);
+  useEffect(() => {
+    if (locationPermission === "granted" && !currentLocation) {
+      requestLocationPermission();
+    }
+  }, [locationPermission]);
 
   // ✅ REQUEST LOCATION PERMISSION & GET CURRENT LOCATION
   const requestLocationPermission = () => {
@@ -205,6 +210,10 @@ function VehicleCheckout() {
 
       if (!confirm) return;
     }
+    if (locationPermission === "granted" && !currentLocation) {
+      console.log("📍 Permission granted, auto fetching location...");
+      requestLocationPermission();
+    }
 
     if (saving) return;
     setSaving(true);
@@ -301,17 +310,14 @@ function VehicleCheckout() {
 
           {locationPermission === null && <p style={{ margin: 0 }}>Mengecek permission...</p>}
 
+          {locationPermission === "granted" && !currentLocation && <p style={{ color: "#856404" }}>📍 Mengambil lokasi...</p>}
+
           {locationPermission === "granted" && currentLocation && (
             <>
-              <p style={{ margin: 0, color: "#155724" }}>
-                ✅ <strong>Tracking AKTIF</strong>
+              <p style={{ color: "#155724" }}>✅ Tracking AKTIF</p>
+              <p>
+                {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
               </p>
-              <p style={{ margin: "4px 0 0 0", fontSize: 14, color: "#155724" }}>
-                Lokasi saat ini: {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
-              </p>
-              <a href={`https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: "#007bff" }}>
-                🗺️ Lihat di Maps
-              </a>
             </>
           )}
 

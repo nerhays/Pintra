@@ -72,7 +72,7 @@ function RoomBooking() {
       const hasBookingToday = snap.docs.some((doc) => {
         const data = doc.data();
 
-        const activeStatuses = ["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVED"];
+        const activeStatuses = ["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVED", "ON_GOING"];
         if (!activeStatuses.includes(data.status)) return false;
 
         const bookingStart = data.waktuMulai?.toDate?.();
@@ -184,7 +184,7 @@ function RoomBooking() {
 
     // 2️⃣ Filter ruangan tersedia (tidak bentrok)
     const available = allRooms.filter((room) => {
-      const BLOCKING_STATUS = ["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVED"];
+      const BLOCKING_STATUS = ["WAITING_MANAGER", "WAITING_OPERATOR", "WAITING_ADMIN", "APPROVED", "ON_GOING"];
 
       const relatedBookings = bookings.filter((b) => b.ruang?.roomId === room.id && BLOCKING_STATUS.includes(b.status));
 
@@ -195,10 +195,14 @@ function RoomBooking() {
         if (!bStart || !bEnd) continue;
 
         // Apply buffer
-        const bEndWithBuffer = new Date(bEnd.getTime() + BUFFER_HOURS * 60 * 60 * 1000);
+        const bufferMs = BUFFER_HOURS * 60 * 60 * 1000;
 
-        // ✅ overlap check
-        const isOverlap = userStart < bEndWithBuffer && userEnd > bStart;
+        const bookingStartWithBuffer = new Date(bStart.getTime() - bufferMs);
+        const bookingEndWithBuffer = new Date(bEnd.getTime() + bufferMs);
+
+        // ❗ OVERLAP TOTAL (AMAN)
+        const isOverlap = userStart < bookingEndWithBuffer && userEnd > bookingStartWithBuffer;
+
         if (isOverlap) return false;
       }
 
