@@ -98,10 +98,18 @@ function VehicleBookingForm() {
         alert("Tujuan wajib diisi");
         return;
       }
+      if (keperluan === "DINAS" || keperluan === "UNDANGAN") {
+        const surat = nomorSurat.trim();
 
-      if ((keperluan === "DINAS" || keperluan === "UNDANGAN") && !nomorSurat.trim()) {
-        alert("Nomor surat wajib diisi");
-        return;
+        if (!surat) {
+          alert("Nomor surat wajib diisi");
+          return;
+        }
+
+        if (surat.length < 6) {
+          alert("Nomor surat minimal 6 karakter");
+          return;
+        }
       }
 
       if (keperluan === "KEGIATAN_LAIN" && !alasan.trim()) {
@@ -163,8 +171,8 @@ function VehicleBookingForm() {
         waktuPinjam: Timestamp.fromDate(startDate),
         waktuKembali: Timestamp.fromDate(endDate),
 
+        vehicleId: vehicleId,
         vehicle: {
-          vehicleId: vehicleId,
           platNomor: vehicle?.platNomor || "-",
           nama: vehicle?.nama || "-",
           tahun: vehicle?.tahun || "-",
