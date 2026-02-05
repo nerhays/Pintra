@@ -52,11 +52,11 @@ function ManagerApprovalVehiclePage() {
           return;
         }
 
-        // ✅ fetch booking kendaraan divisi ini yg menunggu approval manager (APPROVAL_1)
+        // ✅ fetch booking kendaraan divisi ini yg menunggu approval manager (SUBMITTED)
         const bookingSnap = await getDocs(
           query(
             collection(db, "vehicle_bookings"),
-            where("status", "==", "APPROVAL_1"),
+            where("status", "==", "SUBMITTED"),
             where("divisi", "==", userData.divisi), // case-sensitive: harus sama
           ),
         );
@@ -105,7 +105,7 @@ function ManagerApprovalVehiclePage() {
       const ref = doc(db, "vehicle_bookings", booking.id);
 
       await updateDoc(ref, {
-        status: "APPROVAL_2",
+        status: "APPROVAL_1",
         updatedAt: now,
 
         lastApprovalBy: auth.currentUser.email,
@@ -121,7 +121,7 @@ function ManagerApprovalVehiclePage() {
         actionJabatan: "manager",
         userId: auth.currentUser.uid,
         oldStatus: booking.status,
-        newStatus: "APPROVAL_2",
+        newStatus: "APPROVAL_1",
         note: "Disetujui Manager Divisi",
         timestamp: now,
       });

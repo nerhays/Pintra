@@ -58,7 +58,7 @@ function VehicleBooking() {
         const data = doc.data();
 
         // Hanya cek booking yang masih aktif
-        const activeStatuses = ["APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "APPROVED", "ON_GOING"];
+        const activeStatuses = ["APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "ON_GOING"];
         if (!activeStatuses.includes(data.status)) return false;
 
         const bookingStart = data.waktuPinjam?.toDate?.();
@@ -144,7 +144,7 @@ function VehicleBooking() {
 
     // 3️⃣ Filter kendaraan tersedia (tidak bentrok)
     const availableVehicles = allVehicles.filter((vehicle) => {
-      const BLOCKING_STATUS = ["APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "APPROVED", "ON_GOING"];
+      const BLOCKING_STATUS = ["APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "ON_GOING"];
 
       const relatedBookings = bookings.filter((b) => b.vehicle?.vehicleId === vehicle.id && BLOCKING_STATUS.includes(b.status));
 

@@ -92,8 +92,8 @@ function Home() {
           return;
         }
 
-        // ON GOING (termasuk APPROVED yang belum dimulai)
-        if (["APPROVED", "ON_GOING"].includes(s)) {
+        // ON GOING (termasuk APPROVAL_3 yang belum dimulai)
+        if (["APPROVAL_3", "ON_GOING"].includes(s)) {
           stat.ON_GOING++;
           return;
         }

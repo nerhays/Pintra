@@ -46,9 +46,9 @@ function AdminApprovalKendaraanPage() {
   };
 
   const getWaitingStatusForLevel = (level) => {
-    if (level === "manager") return "APPROVAL_1";
-    if (level === "operator") return "APPROVAL_2";
-    if (level === "admin") return "APPROVAL_3";
+    if (level === "manager") return "SUBMITTED";
+    if (level === "operator") return "APPROVAL_1";
+    if (level === "admin") return "APPROVAL_2";
     return null;
   };
 
@@ -137,9 +137,9 @@ function AdminApprovalKendaraanPage() {
       const oldStatus = booking.status;
       let newStatus = booking.status;
 
-      if (level === "manager") newStatus = "APPROVAL_2";
-      if (level === "operator") newStatus = "APPROVAL_3";
-      if (level === "admin") newStatus = "APPROVED";
+      if (level === "manager") newStatus = "APPROVAL_1";
+      if (level === "operator") newStatus = "APPROVAL_2";
+      if (level === "admin") newStatus = "APPROVAL_3";
 
       if (newStatus === oldStatus) {
         alert("Status tidak berubah (cek level kamu).");
@@ -156,8 +156,8 @@ function AdminApprovalKendaraanPage() {
 
           const fresh = { id: snap.id, ...snap.data() };
 
-          // ✅ pastikan status masih APPROVAL_2
-          if (fresh.status !== "APPROVAL_2") {
+          // ✅ pastikan status masih APPROVAL_1
+          if (fresh.status !== "APPROVAL_1") {
             throw new Error("Booking ini sudah berubah status (refresh halaman).");
           }
 
@@ -183,7 +183,8 @@ function AdminApprovalKendaraanPage() {
             const st = b.status;
 
             // hanya yang masih bisa bentrok / masih hidup
-            const BLOCKING = ["APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "APPROVED", "ON_GOING", "SUBMITTED"];
+            const BLOCKING = ["APPROVAL_1", "APPROVAL_2", "APPROVAL_3", "ON_GOING", "SUBMITTED"];
+
             if (!BLOCKING.includes(st)) return;
 
             const bStart = b.waktuPinjam?.toDate?.();
@@ -198,7 +199,7 @@ function AdminApprovalKendaraanPage() {
 
           // ✅ 1) approve booking terpilih
           tx.update(bookingRef, {
-            status: "APPROVAL_3",
+            status: "APPROVAL_2",
             updatedAt: now,
             lastApprovalBy: myProfile.nama || myProfile.email || "-",
             lastApprovalRole: myProfile.role || "-",
@@ -223,13 +224,13 @@ function AdminApprovalKendaraanPage() {
 
         // ✅ history untuk booking yang di-approve
         await addVehicleHistory(booking.id, {
-          action: "APPROVED",
+          action: "APPROVAL_2",
           actionBy: myProfile.nama || myProfile.email || "-",
           actionRole: myProfile.role || "-",
           actionJabatan: myProfile.jabatan || "-",
           userId: myProfile.uid,
           oldStatus,
-          newStatus: "APPROVAL_3",
+          newStatus: "APPROVAL_2",
           note: "Disetujui oleh operator + auto reject booking bentrok",
           timestamp: now,
         });
@@ -246,7 +247,7 @@ function AdminApprovalKendaraanPage() {
         });
 
         await addVehicleHistory(booking.id, {
-          action: "APPROVED",
+          action: "APPROVAL_3",
           actionBy: myProfile.nama || myProfile.email || "-",
           actionRole: myProfile.role || "-",
           actionJabatan: myProfile.jabatan || "-",

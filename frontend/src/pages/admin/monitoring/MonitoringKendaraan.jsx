@@ -20,10 +20,9 @@ const formatDate = (timestamp) => {
 
 const getStatusBadge = (status) => {
   const statusMap = {
-    APPROVAL_1: { label: "Waiting Manager", class: "waiting" },
-    APPROVAL_2: { label: "Waiting Operator", class: "waiting" },
-    APPROVAL_3: { label: "Waiting Admin", class: "waiting" },
-    APPROVED: { label: "Approved", class: "approved" },
+    APPROVAL_1: { label: "Waiting Operator", class: "waiting" },
+    APPROVAL_2: { label: "Waiting Admin", class: "waiting" },
+    APPROVAL_3: { label: "Approved (Admin)", class: "approved" },
     ON_GOING: { label: "On Going", class: "on_going" },
     DONE: { label: "Done", class: "approved" },
     REJECTED: { label: "Rejected", class: "rejected" },
