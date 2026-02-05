@@ -1,12 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import "../pages/vehicle/VehicleBooking.css";
+import { getMainImageDataUrl } from "../utils/getMainImage";
 
 function VehicleCard({ vehicle, start, end }) {
   const navigate = useNavigate();
+  const imageSrc = getMainImageDataUrl(vehicle.photos);
 
   return (
     <div className="vehicle-card">
-      <div className="vehicle-image" />
+      <div className="vehicle-card-image">{imageSrc ? <img src={imageSrc} alt={vehicle.nama} /> : <div className="vehicle-image-placeholder">🚗</div>}</div>
 
       <div className="vehicle-info">
         <h3>

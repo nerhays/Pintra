@@ -8,23 +8,20 @@ export default function RoomDisplay() {
   const [now, setNow] = useState(new Date());
   const [activeRoom, setActiveRoom] = useState(null);
 
-  /* ================= JAM & TANGGAL REALTIME ================= */
+  /* ================= JAM REALTIME ================= */
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(new Date());
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
-  /* ================= DATA RUANG (APPROVED ADMIN) ================= */
+  /* ================= FIRESTORE LISTENER ================= */
   useEffect(() => {
     const ref = collection(db, "booking_ruang");
 
-    const q = query(
-      ref,
-      where("approval.admin.status", "==", "APPROVED")
-    );
+    // ✅ QUERY AMAN (TIDAK NESTED MAP)
+    const q = query(ref, where("approvalAdminStatus", "==", "APPROVED"), where("ruang.status", "==", "APPROVED"));
 
     const unsub = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map((doc) => ({
@@ -32,21 +29,59 @@ export default function RoomDisplay() {
         ...doc.data(),
       }));
 
-      const current = data.find((item) => {
+      if (!data.length) {
+        setActiveRoom(null);
+        return;
+      }
+
+      const nowMillis = Date.now();
+
+      // ✅ RANGE HARI INI (ANTI TIMEZONE ERROR)
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // 1️⃣ JADWAL HARI INI
+      const todaySchedules = data.filter((item) => {
         if (!item.waktuMulai || !item.waktuSelesai) return false;
-
         const start = item.waktuMulai.toDate();
-        const end = item.waktuSelesai.toDate();
-
-        return now >= start && now <= end;
+        return start >= startOfDay && start <= endOfDay;
       });
 
-      setActiveRoom(current || null);
+      // 2️⃣ SEDANG BERLANGSUNG
+      const ongoing = todaySchedules.find((item) => {
+        const start = item.waktuMulai.toMillis();
+        const end = item.waktuSelesai.toMillis();
+        return nowMillis >= start && nowMillis <= end;
+      });
+
+      if (ongoing) {
+        setActiveRoom({
+          ...ongoing,
+          displayStatus: "ONGOING",
+        });
+        return;
+      }
+
+      // 3️⃣ AKAN DATANG (TERDEKAT)
+      const upcoming = todaySchedules.filter((item) => item.waktuMulai.toMillis() > nowMillis).sort((a, b) => a.waktuMulai.toMillis() - b.waktuMulai.toMillis())[0];
+
+      if (upcoming) {
+        setActiveRoom({
+          ...upcoming,
+          displayStatus: "UPCOMING",
+        });
+      } else {
+        setActiveRoom(null);
+      }
     });
 
     return () => unsub();
-  }, [now]);
+  }, []);
 
+  /* ================= FORMAT ================= */
   const formatTime = (date) =>
     date.toLocaleTimeString("id-ID", {
       hour: "2-digit",
@@ -62,6 +97,7 @@ export default function RoomDisplay() {
       year: "numeric",
     });
 
+  /* ================= RENDER ================= */
   return (
     <div className="display-page">
       {/* HEADER */}
@@ -79,29 +115,22 @@ export default function RoomDisplay() {
             <>
               <div className="current-schedule">
                 <span className="time-range">
-                  {activeRoom.waktuMulai
-                    .toDate()
-                    .toLocaleTimeString("id-ID", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
+                  {activeRoom.waktuMulai.toDate().toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
                   -{" "}
-                  {activeRoom.waktuSelesai
-                    .toDate()
-                    .toLocaleTimeString("id-ID", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                  {activeRoom.waktuSelesai.toDate().toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
-                <span className="badge red">Sedang Berlangsung</span>
+
+                <span className={`badge ${activeRoom.displayStatus === "ONGOING" ? "red" : "blue"}`}>{activeRoom.displayStatus === "ONGOING" ? "Sedang Berlangsung" : "Akan Datang"}</span>
               </div>
 
-              <p className="room-name">
-                Ruang {activeRoom.ruang?.roomId}
-              </p>
-              <p className="meeting-name">
-                {activeRoom.namaKegiatan}
-              </p>
+              <p className="room-name">Ruang {activeRoom.ruang?.roomId}</p>
+              <p className="meeting-name">{activeRoom.namaKegiatan}</p>
             </>
           ) : (
             <>
@@ -116,13 +145,11 @@ export default function RoomDisplay() {
 
         {/* RIGHT */}
         <div className="right-section">
-          {/* JAM (DESAIN TETAP) */}
           <div className="clock">
             <div className="clock-text">{formatTime(now)}</div>
             <div className="clock-label">{formatDate(now)}</div>
           </div>
 
-          {/* CARD (STATIS / BISA DISAMBUNG NANTI) */}
           <div className="schedule-card">
             {activeRoom ? (
               <div className="schedule-item active">
@@ -132,21 +159,16 @@ export default function RoomDisplay() {
                 </div>
                 <div className="schedule-right">
                   <span className="time">
-                    {activeRoom.waktuMulai
-                      .toDate()
-                      .toLocaleTimeString("id-ID", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}{" "}
+                    {activeRoom.waktuMulai.toDate().toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
                     -{" "}
-                    {activeRoom.waktuSelesai
-                      .toDate()
-                      .toLocaleTimeString("id-ID", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    {activeRoom.waktuSelesai.toDate().toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
-                  <span className="badge red">Sedang Berlangsung</span>
                 </div>
               </div>
             ) : (
@@ -168,9 +190,7 @@ export default function RoomDisplay() {
       <footer className="display-footer">
         <div className="marquee">
           <span>
-            Melalui <b>PINTRA</b>, Pelindo mengintegrasikan kinerja, sistem,
-            dan layanan digital secara real-time untuk mendukung operasional
-            yang andal, transparan, dan terpercaya di seluruh lingkungan kerja.
+            Melalui <b>PINTRA</b>, Pelindo mengintegrasikan kinerja, sistem, dan layanan digital secara real-time untuk mendukung operasional yang andal, transparan, dan terpercaya.
           </span>
         </div>
       </footer>

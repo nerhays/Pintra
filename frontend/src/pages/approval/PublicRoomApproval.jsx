@@ -100,7 +100,7 @@ function PublicRoomApproval() {
       <div style={{ padding: 24, textAlign: "center", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ maxWidth: 500 }}>
           <div style={{ fontSize: 80, marginBottom: 24 }}>✅</div>
-          <h2 style={{ color: "#4CAF50", marginBottom: 16 }}>Keputusan Berhasil Disimpan!</h2>
+          <h2 style={{ color: "#4CAF50", marginBottom: 16 }}>Approved!</h2>
           <p style={{ fontSize: 16, color: "#666", lineHeight: 1.6 }}>Terima kasih atas persetujuan Anda. Sistem telah mencatat keputusan Anda dan akan melanjutkan ke tahap approval berikutnya.</p>
           <div style={{ marginTop: 32, padding: 16, background: "#f5f5f5", borderRadius: 8 }}>
             <p style={{ margin: 0, color: "#888", fontSize: 14 }}>Anda dapat menutup halaman ini.</p>

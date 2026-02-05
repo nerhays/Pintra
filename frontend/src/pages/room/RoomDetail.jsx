@@ -6,7 +6,7 @@ import { auth, db } from "../../firebase";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import FooterOrnament from "../../components/FooterOrnament";
-
+import { getMainImageDataUrl } from "../../utils/getMainImage";
 import "./RoomDetail.css";
 
 function RoomDetail() {
@@ -45,12 +45,13 @@ function RoomDetail() {
   if (loading) return <div style={{ padding: 40 }}>Loading...</div>;
   if (!room) return <div style={{ padding: 40 }}>Ruang tidak ditemukan</div>;
 
+  const imageSrc = getMainImageDataUrl(room.photos);
   return (
     <>
       <Navbar role={role} />
 
       <div className="room-detail-container">
-        <div className="room-image-box" />
+        <div className="room-image-box">{imageSrc ? <img src={imageSrc} alt={room.namaRuang} /> : <div className="room-image-placeholder">🏢</div>}</div>
 
         <div className="room-info-wrapper">
           <div>

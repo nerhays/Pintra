@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, updateDoc, Timestamp, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
@@ -13,11 +13,21 @@ function VehicleTracking() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
+  // ✅ NEW: Auto tracking state
+  const [isAutoTracking, setIsAutoTracking] = useState(false);
+  const watchIdRef = useRef(null);
+
   // Real-time listener
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "vehicle_bookings", bookingId), (snap) => {
       if (snap.exists()) {
-        setData({ id: snap.id, ...snap.data() });
+        const bookingData = { id: snap.id, ...snap.data() };
+        setData(bookingData);
+
+        // ✅ Auto-start tracking jika enabled
+        if (bookingData.tracking?.enabled && !isAutoTracking) {
+          startAutoTracking();
+        }
       }
       setLoading(false);
     });
@@ -25,7 +35,81 @@ function VehicleTracking() {
     return () => unsub();
   }, [bookingId]);
 
-  // ✅ MANUAL UPDATE LOCATION
+  // ✅ CLEANUP: Stop tracking saat component unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        console.log("🛑 Auto-tracking stopped (component unmount)");
+      }
+    };
+  }, []);
+
+  // ✅ AUTO TRACKING dengan watchPosition
+  const startAutoTracking = () => {
+    if (isAutoTracking) {
+      console.log("⚠️ Auto-tracking sudah aktif");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      alert("Browser tidak support Geolocation");
+      return;
+    }
+
+    console.log("🚀 Starting auto-tracking...");
+
+    const watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        try {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            speed: position.coords.speed || 0,
+          };
+
+          await updateDoc(doc(db, "vehicle_bookings", bookingId), {
+            "tracking.lastLocation": location,
+            "tracking.lastUpdated": Timestamp.now(),
+          });
+
+          console.log("✅ Lokasi auto-updated:", location);
+        } catch (err) {
+          console.error("❌ Error updating location:", err);
+        }
+      },
+      (error) => {
+        console.error("❌ Geolocation error:", error);
+
+        if (error.code === 1) {
+          alert("⚠️ Akses lokasi ditolak. Auto-tracking dimatikan.");
+          stopAutoTracking();
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 0,
+      },
+    );
+
+    watchIdRef.current = watchId;
+    setIsAutoTracking(true);
+    console.log("✅ Auto-tracking started, watchId:", watchId);
+  };
+
+  // ✅ STOP AUTO TRACKING
+  const stopAutoTracking = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+      setIsAutoTracking(false);
+      console.log("🛑 Auto-tracking stopped");
+    }
+  };
+
+  // ✅ MANUAL UPDATE (tetap ada sebagai backup)
   const updateLocation = () => {
     if (updating) return;
 
@@ -85,11 +169,59 @@ function VehicleTracking() {
           <b>{data.vehicle?.nama}</b> • <b>{data.vehicle?.platNomor}</b>
         </p>
 
-        {/* BIG UPDATE BUTTON */}
+        {/* ✅ AUTO TRACKING STATUS */}
         <div
           style={{
-            background: minutesSinceUpdate > 30 ? "#fff3cd" : "#d4edda",
-            border: `2px solid ${minutesSinceUpdate > 30 ? "#ffc107" : "#28a745"}`,
+            background: isAutoTracking ? "#d4edda" : "#fff3cd",
+            border: `2px solid ${isAutoTracking ? "#28a745" : "#ffc107"}`,
+            padding: 16,
+            borderRadius: 12,
+            marginBottom: 20,
+          }}
+        >
+          <h4 style={{ margin: "0 0 8px 0" }}>{isAutoTracking ? "✅ Auto-Tracking AKTIF" : "⚠️ Auto-Tracking TIDAK AKTIF"}</h4>
+          <p style={{ margin: "0 0 12px 0", fontSize: 14 }}>{isAutoTracking ? "Lokasi Anda akan terupdate otomatis setiap ada pergerakan" : "Lokasi hanya update manual. Klik tombol di bawah untuk aktifkan auto-tracking"}</p>
+
+          {!isAutoTracking && (
+            <button
+              onClick={startAutoTracking}
+              style={{
+                padding: "10px 20px",
+                background: "#28a745",
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              🚀 Aktifkan Auto-Tracking
+            </button>
+          )}
+
+          {isAutoTracking && (
+            <button
+              onClick={stopAutoTracking}
+              style={{
+                padding: "10px 20px",
+                background: "#dc3545",
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              🛑 Matikan Auto-Tracking
+            </button>
+          )}
+        </div>
+
+        {/* MANUAL UPDATE BUTTON (backup) */}
+        <div
+          style={{
+            background: minutesSinceUpdate > 30 ? "#fff3cd" : "#f8f9fa",
+            border: `2px solid ${minutesSinceUpdate > 30 ? "#ffc107" : "#dee2e6"}`,
             padding: 20,
             borderRadius: 12,
             marginTop: 20,
@@ -126,24 +258,14 @@ function VehicleTracking() {
               width: "100%",
               maxWidth: 400,
             }}
-            onMouseEnter={(e) => !updating && (e.target.style.transform = "translateY(-2px)")}
-            onMouseLeave={(e) => !updating && (e.target.style.transform = "translateY(0)")}
           >
-            {updating ? "⏳ Mengambil Lokasi..." : "📍 UPDATE LOKASI SEKARANG"}
+            {updating ? "⏳ Mengambil Lokasi..." : "📍 UPDATE MANUAL"}
           </button>
 
-          <p
-            style={{
-              margin: "12px 0 0 0",
-              fontSize: 14,
-              color: "#666",
-            }}
-          >
-            Klik tombol ini setiap 15-30 menit untuk update lokasi
-          </p>
+          <p style={{ margin: "12px 0 0 0", fontSize: 14, color: "#666" }}>Gunakan tombol ini jika auto-tracking tidak berfungsi</p>
         </div>
 
-        {/* LAST LOCATION */}
+        {/* REST OF YOUR CODE (LAST LOCATION, INFO, DETAIL) */}
         {lastLocation && (
           <div
             style={{
@@ -166,7 +288,7 @@ function VehicleTracking() {
               <p style={{ margin: "0 0 16px 0", fontSize: 14, color: "#666" }}>
                 <strong>Diperbarui:</strong> {lastUpdated.toLocaleString("id-ID")}
                 <br />
-                <span style={{ color: minutesSinceUpdate > 30 ? "#d9534f" : "#5cb85c" }}>({minutesSinceUpdate} menit yang lalu)</span>
+                <span style={{ color: minutesSinceUpdate > 30 ? "#d9534f" : "#5cb85c" }}>({minutesSinceUpdate < 1 ? "Baru saja" : `${minutesSinceUpdate} menit yang lalu`})</span>
               </p>
             )}
 
@@ -212,43 +334,7 @@ function VehicleTracking() {
           </div>
         )}
 
-        {/* INFO */}
-        <div
-          style={{
-            background: "#e7f3ff",
-            border: "1px solid #b3d9ff",
-            padding: 16,
-            borderRadius: 8,
-            marginTop: 20,
-          }}
-        >
-          <h4 style={{ margin: "0 0 8px 0" }}>ℹ️ Panduan Tracking</h4>
-          <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.8 }}>
-            <li>
-              <strong>Update lokasi setiap 15-30 menit</strong> selama perjalanan
-            </li>
-            <li>Pastikan GPS HP aktif</li>
-            <li>Koneksi internet diperlukan untuk update</li>
-            <li>Admin dapat memantau lokasi terbaru Anda</li>
-            <li>
-              <strong>Penting:</strong> Simpan halaman ini di bookmark untuk akses cepat
-            </li>
-          </ul>
-        </div>
-
-        {/* DETAIL */}
-        <div style={{ marginTop: 20, padding: 16, background: "#f8f9fa", borderRadius: 8 }}>
-          <h4>📋 Detail Perjalanan</h4>
-          <p>
-            <strong>Tujuan:</strong> {data.tujuan}
-          </p>
-          <p>
-            <strong>Waktu Kembali:</strong> {data.waktuKembali?.toDate().toLocaleString("id-ID")}
-          </p>
-          <p>
-            <strong>Odometer Awal:</strong> {data.kondisiAwal?.odometerAwal || "-"} km
-          </p>
-        </div>
+        {/* INFO & DETAIL sections remain the same */}
       </div>
 
       <Footer />

@@ -4,6 +4,7 @@ import { db } from "../../../firebase";
 
 import AdminLayout from "../../../components/admin/AdminLayout";
 import "./AdminRoomPage.css";
+import { compressImageToBase64 } from "../../../utils/compressImageToBase64";
 
 function AdminRoomPage() {
   const [rooms, setRooms] = useState([]);
@@ -23,6 +24,8 @@ function AdminRoomPage() {
   const [tipe, setTipe] = useState("offline"); // offline | hybrid
   const [status, setStatus] = useState("available"); // available | booked
   const [fasilitasText, setFasilitasText] = useState(""); // input comma separated
+  const [photos, setPhotos] = useState([]);
+  // [{ base64, dataUrl, mimeType, isMain }]
 
   const resetForm = () => {
     setNamaRuang("");
@@ -32,6 +35,7 @@ function AdminRoomPage() {
     setStatus("available");
     setFasilitasText("");
     setSelectedId(null);
+    setPhotos([]);
   };
 
   const fetchRooms = async () => {
@@ -72,6 +76,14 @@ function AdminRoomPage() {
     setStatus(r.status || "available");
 
     setFasilitasText(Array.isArray(r.fasilitas) ? r.fasilitas.join(", ") : "");
+    setPhotos(
+      Array.isArray(r.photos)
+        ? r.photos.map((p) => ({
+            ...p,
+            dataUrl: `data:${p.mimeType};base64,${p.base64}`,
+          }))
+        : [],
+    );
 
     setOpenForm(true);
   };
@@ -84,6 +96,62 @@ function AdminRoomPage() {
       .split(",")
       .map((x) => x.trim())
       .filter((x) => x.length > 0);
+  };
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    try {
+      const results = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const res = await compressImageToBase64(files[i], {
+          maxWidth: 1280,
+          maxHeight: 720,
+          quality: 0.7,
+        });
+
+        results.push({
+          base64: res.pureBase64,
+          dataUrl: res.dataUrl, // preview
+          mimeType: res.mimeType,
+          isMain: false,
+        });
+      }
+
+      setPhotos((prev) => {
+        const merged = [...prev, ...results];
+
+        // kalau belum ada foto utama → set foto pertama
+        if (!merged.some((p) => p.isMain) && merged.length > 0) {
+          merged[0].isMain = true;
+        }
+
+        return [...merged];
+      });
+    } catch (err) {
+      alert("Gagal upload foto: " + err.message);
+    }
+  };
+  const setMainPhoto = (index) => {
+    setPhotos((prev) =>
+      prev.map((p, i) => ({
+        ...p,
+        isMain: i === index,
+      })),
+    );
+  };
+
+  const removePhoto = (index) => {
+    setPhotos((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+
+      if (!next.some((p) => p.isMain) && next.length > 0) {
+        next[0].isMain = true;
+      }
+
+      return [...next];
+    });
   };
 
   const handleSubmit = async () => {
@@ -106,6 +174,11 @@ function AdminRoomPage() {
         tipe, // offline | hybrid
         status, // available | booked
         fasilitas,
+        photos: photos.map((p) => ({
+          base64: p.base64,
+          mimeType: p.mimeType,
+          isMain: p.isMain,
+        })),
       };
 
       if (mode === "ADD") {
@@ -250,6 +323,29 @@ function AdminRoomPage() {
                   <label>Fasilitas (pisahkan dengan koma)</label>
                   <input value={fasilitasText} onChange={(e) => setFasilitasText(e.target.value)} placeholder="proyektor, whiteboard, ac, tv" />
                 </div>
+                <div className="form-group full">
+                  <label>Foto Ruangan (bisa lebih dari 1)</label>
+                  <input type="file" accept="image/*" multiple onChange={handleImageChange} />
+                </div>
+                {photos.length > 0 && (
+                  <div className="photo-preview-grid">
+                    {photos.map((p, idx) => (
+                      <div key={idx} className={`photo-item ${p.isMain ? "main" : ""}`}>
+                        <img src={p.dataUrl} alt="preview" />
+
+                        <div className="photo-actions">
+                          <button type="button" onClick={() => setMainPhoto(idx)}>
+                            {p.isMain ? "Foto Utama" : "Jadikan Utama"}
+                          </button>
+
+                          <button type="button" className="danger" onClick={() => removePhoto(idx)}>
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="modal-actions">

@@ -249,3 +249,46 @@
     z-index: 5;
   }
 }
+.photo-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.photo-item {
+  border: 2px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.photo-item.main {
+  border-color: #0b74b8;
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+}
+
+.photo-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px;
+}
+
+.photo-actions button {
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.photo-actions .danger {
+  background: #ef4444;
+  color: white;
+}

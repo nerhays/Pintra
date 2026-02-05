@@ -164,5 +164,73 @@ router.post("/approval/room/action", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+router.post("/approval/vehicle/manager/send", async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ message: "bookingId required" });
+    }
+
+    const bookingRef = db.collection("vehicle_bookings").doc(bookingId);
+    const snap = await bookingRef.get();
+
+    if (!snap.exists) {
+      throw new Error("Booking kendaraan tidak ditemukan");
+    }
+
+    const booking = snap.data();
+
+    console.log("📦 VEHICLE BOOKING:", booking);
+
+    const manager = booking.managerInfo;
+
+    if (!manager?.noTelp) {
+      throw new Error("Manager tidak memiliki nomor telepon");
+    }
+
+    const phoneNumber = String(manager.noTelp).trim();
+
+    console.log("📞 Manager phone:", phoneNumber);
+
+    // 🔑 token
+    const token = await createApprovalToken({ bookingId });
+
+    // 🔗 link approval
+    const link = `https://pintra-pelindo.web.app/approval/vehicle?bookingId=${bookingId}&token=${token}`;
+
+    // 📲 kirim WA
+    await sendWhatsApp({
+      phone: phoneNumber,
+      message: `*APPROVAL PEMINJAMAN KENDARAAN*
+
+Yth. ${manager.nama},
+
+🚗 *Detail Kendaraan*
+- ${booking.vehicle?.nama} (${booking.vehicle?.platNomor})
+
+📋 *Keperluan*
+- ${booking.keperluan}
+- Tujuan: ${booking.tujuan}
+
+📅 *Jadwal*
+- ${formatWIB(booking.waktuPinjam)}
+- s/d ${formatWIB(booking.waktuKembali)}
+
+👉 *Approve / Reject*
+${link}
+
+⏰ Berlaku 24 jam
+
+_Pesan otomatis PINTRA_`,
+    });
+
+    console.log("✅ WA vehicle approval sent");
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ SEND WA VEHICLE ERROR:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
