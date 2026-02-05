@@ -40,6 +40,8 @@
 /* ================= PAGE ================= */
 .display-page {
   min-height: 100vh;
+  height: 100vh; /* 🔒 KUNCI TINGGI */
+  overflow: hidden; /* 🔒 MATIKAN SCROLL */
   display: flex;
   flex-direction: column;
 
@@ -74,7 +76,7 @@
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 48px;
-  padding: 40px 48px;
+  padding: 40px 48px 72px 48px; /* 🔒 TAMBAH PADDING BAWAH */
 }
 
 /* ================= LEFT ================= */
@@ -85,7 +87,15 @@
 .left-section h1 {
   font-size: 52px;
   font-weight: 700;
+  font-style: italic; /* MIRING */
   margin-bottom: 32px;
+
+  /* SHADOW HALUS */
+  text-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    0 0 18px rgba(255, 255, 255, 0.12);
+
+  letter-spacing: 0.8px;
 }
 
 .current-schedule {
@@ -212,7 +222,12 @@
 
 /* ================= FOOTER ================= */
 .display-footer {
-  position: relative;
+  position: fixed; /* 🔒 KUNCI DI BAWAH */
+  bottom: 0; /* 🔒 POSISI BAWAH */
+  left: 0;
+  right: 0;
+  width: 100%;
+  
   overflow: hidden;
 
   height: 52px;
@@ -222,6 +237,7 @@
   align-items: center;
 
   animation: fadeSlideUp 2.2s ease forwards;
+  z-index: 10; /* 🔒 AGAR DI ATAS */
 }
 
 .display-footer .marquee {
@@ -303,18 +319,4 @@
   text-transform: capitalize;
 
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-/* ================= JUDUL JADWAL ================= */
-.left-section h1 {
-  font-size: 52px;
-  font-weight: 700;
-  font-style: italic; /* MIRING */
-  margin-bottom: 32px;
-
-  /* SHADOW HALUS */
-  text-shadow:
-    0 4px 10px rgba(0, 0, 0, 0.45),
-    0 0 18px rgba(255, 255, 255, 0.12);
-
-  letter-spacing: 0.8px;
 }
